@@ -55,7 +55,7 @@
 
 ```bash
 # 1. Install Trellis
-npm install -g @mindfoldhq/trellis@latest
+npm install -g @subaru486/trellis@latest
 
 # 2. Initialize in your repo
 trellis init -u your-name

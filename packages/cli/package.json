@@ -1,5 +1,5 @@
 {
-  "name": "@mindfoldhq/trellis",
+  "name": "@subaru486/trellis",
   "version": "0.5.19",
   "description": "AI capabilities grow like ivy — Trellis provides the structure to guide them along a disciplined path",
   "type": "module",
@@ -83,6 +83,6 @@
   ],
   "repository": {
     "type": "git",
-    "url": "https://github.com/mindfold-ai/trellis.git"
+    "url": "https://github.com/Subaru486desuwa/Trellis.git"
   }
 }

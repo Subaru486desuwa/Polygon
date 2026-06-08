@@ -929,7 +929,7 @@ describe("regression: agent-session Trellis update hint", () => {
 
     expect(output).toContain("Trellis update available: 0.5.0 -> 0.5.9");
     expect(output).toContain(
-      "run npm install -g @mindfoldhq/trellis@latest",
+      "run npm install -g @subaru486/trellis@latest",
     );
     expect(output).toContain("SESSION CONTEXT");
   });
