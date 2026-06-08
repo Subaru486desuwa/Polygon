@@ -134,7 +134,7 @@ python3 ./.trellis/scripts/get_context.py --mode phase --step <X.Y>  # detailed 
     [workflow-state:<status>-inline] → codex inline dispatch_mode (main session
                                        edits code directly); codex-only.
     [workflow-state:<status>-ultra]  → ultracode fan-out (config
-                                       ultracode.enabled), non-codex platforms
+                                       ultracode.enabled), class-1 platforms
                                        only. Only planning / in_progress carry
                                        ultra bodies; any other <status>-ultra
                                        falls back to the base status via
@@ -200,7 +200,7 @@ Then run `task.py start <task-dir>` to flip status to in_progress.
 
 <!-- Per-turn breadcrumb: shown throughout Phase 1 when ultracode is on
      (config ultracode.enabled, resolved by inject-workflow-state.py's
-     resolve_breadcrumb_key for non-codex platforms). Ultracode fan-out
+     resolve_breadcrumb_key for class-1 platforms). Ultracode fan-out
      variant of [workflow-state:planning]: research fans out via the Workflow
      tool. Phase 1.3 jsonl curation is still required (regression invariant). -->
 
@@ -244,7 +244,7 @@ Phase 3.4 commit (required, once): after `trellis-update-spec`, or whenever impl
 [/workflow-state:in_progress-inline]
 
 <!-- Per-turn breadcrumb: shown while status='in_progress' when ultracode is on
-     (config ultracode.enabled, non-codex platforms). Ultracode fan-out variant
+     (config ultracode.enabled, class-1 platforms). Ultracode fan-out variant
      of [workflow-state:in_progress]: check fans out across review dimensions via
      the Workflow tool; implement stays single by default. Covers the same
      required steps as the base block — Phase 3.4 commit stays main-driven
@@ -254,6 +254,7 @@ Phase 3.4 commit (required, once): after `trellis-update-spec`, or whenever impl
 [workflow-state:in_progress-ultra]
 **Tools**: `trellis-implement` / `trellis-research` are sub-agent types only — dispatch them via the Task/Agent tool OR a Workflow `agent()` call (NOT Skill). `trellis-update-spec` is a skill. `trellis-check` exists as both; prefer the Agent / Workflow form when verifying after code changes.
 **Flow**: implement → check → trellis-update-spec → commit (Phase 3.4) → `/trellis:finish-work`.
+**Sub-agent self-exemption**: if you are already running as `trellis-implement` / `trellis-check` (a Task/Agent or Workflow `agent()` worker), implement or review/fix directly and do NOT spawn or fan out another Trellis sub-agent. The check fan-out and implement dispatch below are the main session's default only.
 **Ultracode is on — check fans out (main-session default)**: instead of one `trellis-check` sub-agent, drive a Workflow pipeline that dispatches MULTIPLE `trellis-check` agents in parallel — one per review dimension (spec compliance / cross-layer data flow / security & resource safety / adversarial edge-case verification) — then the main session reconciles their findings and decides what to fix. See the "Trellis × Ultracode" section for the check pipeline template. If the Workflow tool is unavailable, fall back to several sequential `trellis-check` dispatches.
 **Implement stays single by default**: dispatch ONE `trellis-implement` sub-agent as usual. Only when the prd decomposes into independent, non-overlapping units may you fan out implement across a Workflow pipeline with per-unit worktree isolation (experimental — requires the task dir already committed; see the Trellis × Ultracode section).
 **Workflow agent context (no hook injection)**: a Workflow `agent()` call does NOT trigger the context-injection hook, so there is no `<!-- trellis-hook-injected -->` marker — each agent self-loads prd + jsonl spec via its "Trellis Context Loading Protocol". Every dispatch prompt MUST start with `Active task: <task path from \`task.py current\`>`, passed RELATIVE to repo root. **Check fan-out runs at repo root, NOT in a worktree** so the agent's cwd resolves the repo-root-relative jsonl paths.
@@ -686,7 +687,7 @@ After the above, remind the user they can run `/finish-work` to wrap up (archive
 
 Two channels, either one:
 
-1. **Config-persistent** — `.trellis/config.yaml` sets `ultracode.enabled: true`. `inject-workflow-state.py`'s `resolve_breadcrumb_key` then serves the `planning-ultra` / `in_progress-ultra` breadcrumbs (non-codex platforms only).
+1. **Config-persistent** — `.trellis/config.yaml` sets `ultracode.enabled: true`. `inject-workflow-state.py`'s `resolve_breadcrumb_key` then serves the `planning-ultra` / `in_progress-ultra` breadcrumbs (class-1 platforms only — `claude` / `cursor` / `opencode` / `kiro` / `codebuddy` / `droid`).
 2. **Single-turn** — the turn shows an "Ultracode is on" system-reminder even though config is off. The base `planning` / `in_progress` breadcrumbs carry an `**Ultracode**:` fallback line telling you to switch to this protocol for that turn only.
 
 Codex never activates ultracode — its `fork_turns="none"` sub-agent isolation can't fan out, and `resolve_breadcrumb_key` returns in the codex branch first. If the Workflow tool isn't available on your platform, degrade gracefully to several sequential Task/Agent dispatches.
@@ -754,16 +755,16 @@ This section is for developers who want to modify the Trellis workflow itself. A
 
 ### Changing what a step means
 
-Edit the corresponding step's walkthrough body in the Phase 1 / 2 / 3 sections above. **Critical constraint**: if you change a step's `[required · once]` marker or add a new `[required · once]` step, you MUST also add a matching enforcement line to that phase's `[workflow-state:STATUS]` tag block — otherwise the per-turn breadcrumb omits the reinforcement, and the AI silently skips the step. The regression tests assert this.
+Edit the corresponding step's walkthrough body in the Phase 1 / 2 / 3 sections above. **Critical constraint**: if you change a step's `[required · once]` marker or add a new `[required · once]` step, you MUST also add a matching enforcement line to that phase's base `[workflow-state:STATUS]` tag block **and to each of its active dispatch-mode variants** (`-inline` for codex, `-ultra` for ultracode) — otherwise the per-turn breadcrumb omits the reinforcement on whichever path is served, and the AI silently skips the step. The regression tests assert this for the base and `-ultra` blocks.
 
-All 4 tag blocks live in the `## Phase Index` section above, immediately after each phase summary:
+There are 8 tag blocks in the `## Phase Index` section above — 4 base blocks plus 4 dispatch-mode variants that `resolve_breadcrumb_key` selects per platform/config (see the **DISPATCH-MODE VARIANTS** note near the top of this file). Only `planning` / `in_progress` have variants; `no_task` / `completed` do not (a missing `*-ultra` / `*-inline` tag falls back to the base via `build_breadcrumb`):
 
-| Scope | Corresponding tag |
-|---|---|
-| No active task (before Phase 1) | `[workflow-state:no_task]` (after the Phase Index ASCII art) |
-| All of Phase 1 (task created → ready for implementation) | `[workflow-state:planning]` (after Phase 1 summary) |
-| Phase 2 + Phase 3.1–3.4 (implementation + check + wrap-up) | `[workflow-state:in_progress]` (after Phase 2 summary) |
-| After Phase 3.5 (archived) | `[workflow-state:completed]` (after Phase 3 summary; **currently DEAD**) |
+| Scope | Base tag | Active variants |
+|---|---|---|
+| No active task (before Phase 1) | `[workflow-state:no_task]` | — |
+| All of Phase 1 (task created → ready for implementation) | `[workflow-state:planning]` | `planning-inline` (codex), `planning-ultra` (ultracode) |
+| Phase 2 + Phase 3.1–3.4 (implementation + check + wrap-up) | `[workflow-state:in_progress]` | `in_progress-inline` (codex), `in_progress-ultra` (ultracode) |
+| After Phase 3.5 (archived) | `[workflow-state:completed]` (**currently DEAD**) | — |
 
 ### Changing the per-turn prompt text
 

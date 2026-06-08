@@ -3913,6 +3913,94 @@ print(len(entries))
     expect(result.claude_inline).toBe("in_progress");
   });
 
+  it("[workflow-state-r1-ultra] template workflow.md [workflow-state:in_progress-ultra] echoes commit (Phase 3.4) + self-exemption + single implement", () => {
+    const wf = templateWorkflowMd();
+    const match = wf.match(
+      /\[workflow-state:in_progress-ultra\]([\s\S]*?)\[\/workflow-state:in_progress-ultra\]/,
+    );
+    expect(match).toBeTruthy();
+    const body = match?.[1] ?? "";
+    // Same required-step invariant as the base in_progress block (R1).
+    expect(body).toMatch(/commit \(Phase 3\.4\)/i);
+    // Recursion guard: a trellis-check / -implement sub-agent reader must NOT fan out.
+    expect(body).toMatch(/self-exemption/i);
+    expect(body).toContain("trellis-check");
+    expect(body).toContain("trellis-implement");
+    // Fan-out scope: implement stays single by default.
+    expect(body).toMatch(/[Ii]mplement stays single/);
+  });
+
+  it("[workflow-state-r2-ultra] template workflow.md [workflow-state:planning-ultra] echoes Phase 1.3 + jsonl curation", () => {
+    const wf = templateWorkflowMd();
+    const match = wf.match(
+      /\[workflow-state:planning-ultra\]([\s\S]*?)\[\/workflow-state:planning-ultra\]/,
+    );
+    expect(match).toBeTruthy();
+    const body = match?.[1] ?? "";
+    expect(body).toMatch(/Phase 1\.3/);
+    expect(body).toMatch(/implement\.jsonl|check\.jsonl/);
+  });
+
+  it("[ultracode-gating] resolve_breadcrumb_key serves -ultra only to class-1 platforms, never codex", () => {
+    // ultracode.enabled is gated to ULTRACODE_PLATFORMS (the hook-inject /
+    // class-1 set). Pull-prelude (codex/gemini/qoder/copilot) and undetected
+    // platforms keep the base breadcrumb; codex is excluded first (returns
+    // -inline, never -ultra).
+    writeTrellisScripts();
+    writeProjectFile(
+      path.join(".trellis", "hooks", "inject-workflow-state.py"),
+      expectTemplateContent(injectWorkflowStateScript, "inject-workflow-state"),
+    );
+    const probePath = path.join(tmpDir, "probe_ultracode.py");
+    fs.writeFileSync(
+      probePath,
+      [
+        "import importlib.util, json",
+        "from pathlib import Path",
+        `hook_path = Path(${JSON.stringify(
+          path.join(tmpDir, ".trellis", "hooks", "inject-workflow-state.py"),
+        )})`,
+        "spec = importlib.util.spec_from_file_location('iws', hook_path)",
+        "mod = importlib.util.module_from_spec(spec)",
+        "spec.loader.exec_module(mod)",
+        "on = {'ultracode': {'enabled': True}}",
+        "result = {",
+        "  'claude_on': mod.resolve_breadcrumb_key('in_progress', 'claude', on),",
+        "  'cursor_on': mod.resolve_breadcrumb_key('planning', 'cursor', on),",
+        "  'droid_on': mod.resolve_breadcrumb_key('in_progress', 'droid', on),",
+        "  'copilot_on': mod.resolve_breadcrumb_key('in_progress', 'copilot', on),",
+        "  'gemini_on': mod.resolve_breadcrumb_key('in_progress', 'gemini', on),",
+        "  'qoder_on': mod.resolve_breadcrumb_key('in_progress', 'qoder', on),",
+        "  'codex_on': mod.resolve_breadcrumb_key('in_progress', 'codex', on),",
+        "  'none_on': mod.resolve_breadcrumb_key('in_progress', None, on),",
+        "  'claude_off': mod.resolve_breadcrumb_key('in_progress', 'claude', {}),",
+        "}",
+        "print(json.dumps(result))",
+      ].join("\n"),
+    );
+    const output = execSync(`${pythonCmd} ${JSON.stringify(probePath)}`, {
+      cwd: tmpDir,
+      encoding: "utf-8",
+    });
+    const result = JSON.parse(
+      output.split("\n").filter((l) => l.startsWith("{")).pop() ?? "{}",
+    ) as Record<string, string>;
+    // class-1 (hook-inject) platforms get the -ultra variant.
+    expect(result.claude_on).toBe("in_progress-ultra");
+    expect(result.cursor_on).toBe("planning-ultra");
+    expect(result.droid_on).toBe("in_progress-ultra");
+    // class-2 / pull-prelude platforms keep the base breadcrumb.
+    expect(result.copilot_on).toBe("in_progress");
+    expect(result.gemini_on).toBe("in_progress");
+    expect(result.qoder_on).toBe("in_progress");
+    // codex is excluded first (sub-agent isolation) — inline default, never -ultra.
+    expect(result.codex_on).toBe("in_progress-inline");
+    // undetected platform keeps base.
+    expect(result.none_on).toBe("in_progress");
+    // ultracode off → plain status.
+    expect(result.claude_off).toBe("in_progress");
+  });
+
   it("[issue-codex-dispatch-mode] inline `#` comment after value is stripped (config.yaml uncomment leaves trailing hint)", () => {
     // The shipped template has:
     //   #   dispatch_mode: sub-agent  # or "inline" to let the main agent edit code directly

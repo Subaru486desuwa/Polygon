@@ -275,8 +275,9 @@ def _ultracode_enabled(config: dict) -> bool:
 
     Drives the config-persistent channel of ultracode fan-out: when on,
     ``resolve_breadcrumb_key`` returns the ``{status}-ultra`` breadcrumb variant
-    for non-codex platforms. Codex is excluded by the caller — fan-out needs
-    parallel sub-agents, which Codex's ``fork_turns="none"`` isolation forbids.
+    for class-1 platforms (``ULTRACODE_PLATFORMS``). Codex and non-class-1
+    platforms are excluded by the caller — fan-out needs parallel sub-agents,
+    which Codex's ``fork_turns="none"`` isolation forbids.
 
     Accepts bool ``True`` or the usual truthy strings/ints
     (``true`` / ``yes`` / ``on`` / ``1``), matching the case-insensitive
@@ -297,6 +298,17 @@ def _ultracode_enabled(config: dict) -> bool:
     return False
 
 
+# Class-1 platforms (workflow.md Phase 2 platform-class note): the set that
+# supports Workflow fan-out, so the only platforms that receive `{status}-ultra`
+# breadcrumbs. Codex is excluded separately (handled first in
+# resolve_breadcrumb_key); every other non-class-1 / undetected platform gets the
+# base breadcrumb. "opencode" is listed for documentation — the OpenCode plugin
+# resolves its own key in inject-workflow-state.js and never calls this function.
+ULTRACODE_PLATFORMS = frozenset(
+    {"claude", "cursor", "opencode", "kiro", "codebuddy", "droid"}
+)
+
+
 def resolve_breadcrumb_key(
     status: str, platform: str | None, config: dict
 ) -> str:
@@ -312,9 +324,11 @@ def resolve_breadcrumb_key(
        sub-agent isolation, and returning here prevents a ``-inline-ultra``
        variant explosion.
 
-    2. **Ultracode** (non-codex only): when ``ultracode.enabled`` is set in
-       config.yaml, return the ``{status}-ultra`` variant so the breadcrumb
-       steers the main agent toward Workflow fan-out (research + check). Missing
+    2. **Ultracode** (class-1 platforms only): when ``ultracode.enabled`` is set
+       in config.yaml AND the platform is in ``ULTRACODE_PLATFORMS``, return the
+       ``{status}-ultra`` variant so the breadcrumb steers the main agent toward
+       Workflow fan-out (research + check). Non-class-1 / undetected platforms
+       (copilot / gemini / qoder / None) keep the base breadcrumb. Missing
        ``*-ultra`` tags fall back to the base status via ``build_breadcrumb``,
        so only planning/in_progress need ultra bodies.
 
@@ -329,7 +343,7 @@ def resolve_breadcrumb_key(
                 if cfg_mode in ("inline", "sub-agent"):
                     mode = cfg_mode
         return f"{status}-inline" if mode == "inline" else status
-    if _ultracode_enabled(config):
+    if _ultracode_enabled(config) and platform in ULTRACODE_PLATFORMS:
         return f"{status}-ultra"
     return status
 

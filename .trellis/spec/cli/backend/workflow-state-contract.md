@@ -207,6 +207,41 @@ that prevents Phase-1.3 / Phase-3.4 style drift from re-occurring. See:
 
 ---
 
+## Dispatch-mode variants
+
+`resolve_breadcrumb_key` (`inject-workflow-state.py` / `.js`) selects ONE
+breadcrumb key per turn from two orthogonal dimensions layered on the base
+status:
+
+| Dimension | Trigger | Key | Scope |
+|-----------|---------|-----|-------|
+| Codex inline | `codex.dispatch_mode: inline` (codex default) | `<status>-inline` | codex only |
+| Ultracode fan-out | `ultracode.enabled` truthy | `<status>-ultra` | class-1 (hook-inject) platforms only: `claude` / `cursor` / `opencode` / `kiro` / `codebuddy` / `droid` |
+
+Rules:
+
+- **Codex is checked first and returns immediately**, so codex never enters the
+  ultracode branch — there is no `<status>-inline-ultra` combination.
+- **Ultracode is gated to the class-1 (hook-inject) set** via `ULTRACODE_PLATFORMS`
+  (the same platforms listed in the Hook reachability matrix below). Pull-prelude
+  (codex / gemini / qoder / copilot), extension-backed (pi), hookless
+  (kilo / antigravity / windsurf), and undetected platforms keep the base
+  breadcrumb — only platforms with parallel sub-agent dispatch get the fan-out
+  variant.
+- **Only `planning` / `in_progress` ship variant bodies.** Any other
+  `<status>-inline` / `<status>-ultra` (e.g. `no_task-ultra`) has no tag and
+  falls back to the base status via `build_breadcrumb`.
+- **The `[required · once]` invariant extends to active variants.** Each variant
+  body must echo the same required-step enforcement lines as its base block —
+  EXCEPT the documented inline exemption (inline skips Phase 1.3 jsonl curation
+  because the main session reads spec context itself, no sub-agent to inject
+  into). The `in_progress-ultra` block additionally carries the **sub-agent
+  self-exemption** line so a `trellis-check` reader does not recursively fan out.
+  The `-ultra` variants are asserted by the regression tests alongside the base
+  blocks.
+
+---
+
 ## Custom statuses
 
 Forks can define custom statuses. To do so:

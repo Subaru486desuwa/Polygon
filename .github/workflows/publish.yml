@@ -33,7 +33,7 @@ jobs:
         run: pnpm install --frozen-lockfile
 
       - name: Build
-        run: pnpm --filter @mindfoldhq/trellis build
+        run: pnpm --filter @subaru486/trellis build
 
       - name: Determine npm tag
         id: npm-tag
