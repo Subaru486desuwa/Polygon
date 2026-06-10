@@ -9,13 +9,13 @@
  *
  * `pruneOrphanManifestKeys` removes any manifest entry that no current
  * platform configurator owns. The two entry points that consume it are
- * `trellis update` (before migration classification) and `trellis uninstall`
+ * `polygon update` (before migration classification) and `polygon uninstall`
  * (before plan building). Together they ensure existing poisoned manifests
  * self-correct on the next routine command.
  *
  * Rules:
- *   - `.trellis/*` entries are ALWAYS kept. `trellis uninstall` removes
- *     `.trellis/` wholesale via `fs.rmSync(..., { recursive: true })`, so
+ *   - `.polygon/*` entries are ALWAYS kept. `polygon uninstall` removes
+ *     `.polygon/` wholesale via `fs.rmSync(..., { recursive: true })`, so
  *     manifest accuracy there doesn't affect uninstall data-loss. `update`
  *     also relies on these entries to detect user-modified workflow files.
  *   - Root-level `AGENTS.md` is kept only when it still looks Polygon-managed
@@ -28,7 +28,7 @@
  *     source/target.
  *   - Everything else: if the path is not in the union of
  *     `collectPlatformTemplates()` for currently-configured platforms, it is
- *     pruned. This matches "files trellis actually wrote during init/update".
+ *     pruned. This matches "files polygon actually wrote during init/update".
  */
 
 import fs from "node:fs";
@@ -42,8 +42,11 @@ import { toPosix } from "./posix.js";
 import type { AITool } from "../types/ai-tools.js";
 import type { TemplateHashes } from "../types/migration.js";
 
-const TRELLIS_BLOCK_START = "<!-- TRELLIS:START -->";
-const TRELLIS_BLOCK_END = "<!-- TRELLIS:END -->";
+const POLYGON_BLOCK_START = "<!-- POLYGON:START -->";
+const POLYGON_BLOCK_END = "<!-- POLYGON:END -->";
+// Pre-rebrand markers — still present in AGENTS.md files written before 0.7.0.
+const LEGACY_BLOCK_START = "<!-- TRELLIS:START -->";
+const LEGACY_BLOCK_END = "<!-- TRELLIS:END -->";
 
 export interface PruneResult {
   /** Manifest keys removed (POSIX-style relative paths). */
@@ -53,7 +56,7 @@ export interface PruneResult {
 }
 
 /**
- * Compute the union of "what trellis writes" across:
+ * Compute the union of "what polygon writes" across:
  *   - every configured platform's collectTemplates() output
  *   - root-level AGENTS.md when it still carries Polygon managed-block markers
  *   - every migration manifest's from/to path (preserve so legitimate
@@ -94,8 +97,10 @@ function shouldKeepAgentsMd(cwd: string): boolean {
   try {
     const content = fs.readFileSync(fullPath, "utf-8");
     return (
-      content.includes(TRELLIS_BLOCK_START) &&
-      content.includes(TRELLIS_BLOCK_END)
+      (content.includes(POLYGON_BLOCK_START) &&
+        content.includes(POLYGON_BLOCK_END)) ||
+      (content.includes(LEGACY_BLOCK_START) &&
+        content.includes(LEGACY_BLOCK_END))
     );
   } catch {
     return true;
@@ -135,10 +140,10 @@ export function pruneOrphanManifestKeys(
 
   for (const [rawKey, value] of Object.entries(hashes)) {
     const key = toPosix(rawKey);
-    // Always preserve .trellis/ entries — they're for the workflow tree
+    // Always preserve .polygon/ entries — they're for the workflow tree
     // which uninstall removes wholesale and which update needs for
     // modified-file detection.
-    if (key.startsWith(".trellis/") || key === ".trellis") {
+    if (key.startsWith(".polygon/") || key === ".polygon") {
       kept[key] = value;
       continue;
     }

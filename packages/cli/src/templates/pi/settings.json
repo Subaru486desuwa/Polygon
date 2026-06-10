@@ -1,7 +1,7 @@
 {
   "enableSkillCommands": true,
   "extensions": [
-    "./extensions/trellis/index.ts"
+    "./extensions/polygon/index.ts"
   ],
   "skills": [
     "./skills"

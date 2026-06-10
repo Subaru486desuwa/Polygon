@@ -5,5 +5,5 @@
   "recommendMigrate": false,
   "changelog": "**Bug Fixes:**\n- fix(migration): use correct 'from' field instead of 'path' in delete migration manifest for Kilo commands cleanup",
   "migrations": [],
-  "notes": "Hotfix for 0.3.4 migration error. Run trellis update to apply Kilo workflows migration."
+  "notes": "Hotfix for 0.3.4 migration error. Run polygon update to apply Kilo workflows migration."
 }

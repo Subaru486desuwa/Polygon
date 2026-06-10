@@ -8,4 +8,4 @@ Work through five questions (prose is fine; no template to fill):
 2. **Why earlier fixes failed** (if they did) — surface fix of a symptom? incomplete scope? tool limitation (grep missed it, types too loose)? wrong mental model (kept looking in one layer)?
 3. **Prevention mechanism** — prefer structural over procedural: make the error impossible (types, architecture) > catch at compile/test time > document a checklist item. Pick the strongest one that's proportionate.
 4. **Systematic expansion** — where else does this same pattern exist right now? Check before closing.
-5. **Capture** — actually update `.trellis/spec/` (the `update-spec` skill has the format). A list of TODOs is not capture; the edited spec file is.
+5. **Capture** — actually update `.polygon/spec/` (the `update-spec` skill has the format). A list of TODOs is not capture; the edited spec file is.

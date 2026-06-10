@@ -13,7 +13,7 @@ import path from "node:path";
 // === External dependency mocks (hoisted by vitest) ===
 
 vi.mock("figlet", () => ({
-  default: { textSync: vi.fn(() => "TRELLIS") },
+  default: { textSync: vi.fn(() => "POLYGON") },
 }));
 
 vi.mock("inquirer", () => ({
@@ -60,7 +60,7 @@ describe("init() integration", () => {
   let tmpDir: string;
 
   beforeEach(() => {
-    tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), "trellis-init-int-"));
+    tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), "polygon-init-int-"));
     vi.spyOn(process, "cwd").mockReturnValue(tmpDir);
     vi.spyOn(console, "log").mockImplementation(noop);
     vi.spyOn(console, "error").mockImplementation(noop);
@@ -115,7 +115,7 @@ describe("init() integration", () => {
     // Built-in multi-file skills are installed for default platforms.
     expect(
       fs.existsSync(
-        path.join(tmpDir, ".claude", "skills", "trellis-meta", "SKILL.md"),
+        path.join(tmpDir, ".claude", "skills", "polygon-meta", "SKILL.md"),
       ),
     ).toBe(true);
     expect(
@@ -124,7 +124,7 @@ describe("init() integration", () => {
           tmpDir,
           ".claude",
           "skills",
-          "trellis-spec-bootstrap",
+          "polygon-spec-bootstrap",
           "SKILL.md",
         ),
       ),
@@ -135,7 +135,7 @@ describe("init() integration", () => {
           tmpDir,
           ".agents",
           "skills",
-          "trellis-meta",
+          "polygon-meta",
           "references",
           "local-architecture",
           "overview.md",
@@ -179,7 +179,7 @@ describe("init() integration", () => {
     expect(fs.existsSync(path.join(tmpDir, ".pi"))).toBe(false);
     expect(
       fs.existsSync(
-        path.join(tmpDir, ".claude", "skills", "trellis-meta", "SKILL.md"),
+        path.join(tmpDir, ".claude", "skills", "polygon-meta", "SKILL.md"),
       ),
     ).toBe(true);
   });
@@ -209,11 +209,11 @@ describe("init() integration", () => {
 
     expect(fs.existsSync(path.join(tmpDir, ".agents", "skills"))).toBe(true);
     // Codex SessionStart hook was removed (de-recursion fix); the
-    // <trellis-bootstrap> notice in inject-workflow-state.py invokes
-    // `$trellis-start` to load workflow context, so the skill is emitted.
+    // <polygon-bootstrap> notice in inject-workflow-state.py invokes
+    // `$polygon-start` to load workflow context, so the skill is emitted.
     expect(
       fs.existsSync(
-        path.join(tmpDir, ".agents", "skills", "trellis-start", "SKILL.md"),
+        path.join(tmpDir, ".agents", "skills", "polygon-start", "SKILL.md"),
       ),
     ).toBe(true);
     expect(
@@ -222,19 +222,19 @@ describe("init() integration", () => {
           tmpDir,
           ".agents",
           "skills",
-          "trellis-finish-work",
+          "polygon-finish-work",
           "SKILL.md",
         ),
       ),
     ).toBe(true);
     expect(
       fs.existsSync(
-        path.join(tmpDir, ".agents", "skills", "trellis-continue", "SKILL.md"),
+        path.join(tmpDir, ".agents", "skills", "polygon-continue", "SKILL.md"),
       ),
     ).toBe(true);
     expect(
       fs.existsSync(
-        path.join(tmpDir, ".agents", "skills", "trellis-meta", "SKILL.md"),
+        path.join(tmpDir, ".agents", "skills", "polygon-meta", "SKILL.md"),
       ),
     ).toBe(true);
     expect(
@@ -243,7 +243,7 @@ describe("init() integration", () => {
           tmpDir,
           ".agents",
           "skills",
-          "trellis-meta",
+          "polygon-meta",
           "references",
           "local-architecture",
           "overview.md",
@@ -252,7 +252,7 @@ describe("init() integration", () => {
     ).toBe(true);
     expect(
       fs.existsSync(
-        path.join(tmpDir, ".codex", "skills", "trellis-meta", "SKILL.md"),
+        path.join(tmpDir, ".codex", "skills", "polygon-meta", "SKILL.md"),
       ),
     ).toBe(false);
     expect(fs.existsSync(path.join(tmpDir, ".codex", "config.toml"))).toBe(
@@ -260,7 +260,7 @@ describe("init() integration", () => {
     );
     expect(
       fs.existsSync(
-        path.join(tmpDir, ".codex", "agents", "trellis-check.toml"),
+        path.join(tmpDir, ".codex", "agents", "polygon-check.toml"),
       ),
     ).toBe(true);
     // parallel skill removed — platform-native worktree features used instead
@@ -283,15 +283,15 @@ describe("init() integration", () => {
     };
     const hashes = hashesFile.hashes ?? {};
     const trackedPaths = Object.keys(hashes).map((p) => p.replace(/\\/g, "/"));
-    expect(trackedPaths).toContain(".agents/skills/trellis-meta/SKILL.md");
+    expect(trackedPaths).toContain(".agents/skills/polygon-meta/SKILL.md");
     expect(trackedPaths).toContain(
-      ".agents/skills/trellis-meta/references/local-architecture/overview.md",
+      ".agents/skills/polygon-meta/references/local-architecture/overview.md",
     );
     expect(trackedPaths).toContain(
-      ".agents/skills/trellis-spec-bootstrap/SKILL.md",
+      ".agents/skills/polygon-spec-bootstrap/SKILL.md",
     );
     expect(trackedPaths).toContain(
-      ".agents/skills/trellis-spec-bootstrap/references/spec-writing.md",
+      ".agents/skills/polygon-spec-bootstrap/references/spec-writing.md",
     );
   });
 
@@ -299,25 +299,25 @@ describe("init() integration", () => {
     await init({ yes: true, kiro: true });
 
     expect(fs.existsSync(path.join(tmpDir, ".kiro", "skills"))).toBe(true);
-    // Kiro is agent-capable → trellis-start skill not emitted.
+    // Kiro is agent-capable → polygon-start skill not emitted.
     expect(
       fs.existsSync(
-        path.join(tmpDir, ".kiro", "skills", "trellis-start", "SKILL.md"),
+        path.join(tmpDir, ".kiro", "skills", "polygon-start", "SKILL.md"),
       ),
     ).toBe(false);
     expect(
       fs.existsSync(
-        path.join(tmpDir, ".kiro", "skills", "trellis-finish-work", "SKILL.md"),
+        path.join(tmpDir, ".kiro", "skills", "polygon-finish-work", "SKILL.md"),
       ),
     ).toBe(true);
     expect(
       fs.existsSync(
-        path.join(tmpDir, ".kiro", "skills", "trellis-continue", "SKILL.md"),
+        path.join(tmpDir, ".kiro", "skills", "polygon-continue", "SKILL.md"),
       ),
     ).toBe(true);
     expect(
       fs.existsSync(
-        path.join(tmpDir, ".kiro", "skills", "trellis-check", "SKILL.md"),
+        path.join(tmpDir, ".kiro", "skills", "polygon-check", "SKILL.md"),
       ),
     ).toBe(true);
     expect(fs.existsSync(path.join(tmpDir, ".claude"))).toBe(false);
@@ -344,7 +344,7 @@ describe("init() integration", () => {
     );
     expect(
       fs.existsSync(
-        path.join(tmpDir, ".windsurf", "workflows", "trellis-start.md"),
+        path.join(tmpDir, ".windsurf", "workflows", "polygon-start.md"),
       ),
     ).toBe(true);
     expect(fs.existsSync(path.join(tmpDir, ".claude"))).toBe(false);
@@ -356,28 +356,28 @@ describe("init() integration", () => {
 
     expect(
       fs.existsSync(
-        path.join(tmpDir, ".qoder", "commands", "trellis-finish-work.md"),
+        path.join(tmpDir, ".qoder", "commands", "polygon-finish-work.md"),
       ),
     ).toBe(true);
     expect(
       fs.existsSync(
-        path.join(tmpDir, ".qoder", "skills", "trellis-brainstorm", "SKILL.md"),
+        path.join(tmpDir, ".qoder", "skills", "polygon-brainstorm", "SKILL.md"),
       ),
     ).toBe(true);
     expect(fs.existsSync(path.join(tmpDir, ".claude"))).toBe(false);
     expect(fs.existsSync(path.join(tmpDir, ".cursor"))).toBe(false);
   });
 
-  it("#3h codebuddy platform creates .codebuddy/commands/trellis", async () => {
+  it("#3h codebuddy platform creates .codebuddy/commands/polygon", async () => {
     await init({ yes: true, codebuddy: true });
 
     expect(
-      fs.existsSync(path.join(tmpDir, ".codebuddy", "commands", "trellis")),
+      fs.existsSync(path.join(tmpDir, ".codebuddy", "commands", "polygon")),
     ).toBe(true);
     // CodeBuddy is agent-capable → start.md not emitted.
     expect(
       fs.existsSync(
-        path.join(tmpDir, ".codebuddy", "commands", "trellis", "start.md"),
+        path.join(tmpDir, ".codebuddy", "commands", "polygon", "start.md"),
       ),
     ).toBe(false);
     expect(
@@ -386,14 +386,14 @@ describe("init() integration", () => {
           tmpDir,
           ".codebuddy",
           "commands",
-          "trellis",
+          "polygon",
           "finish-work.md",
         ),
       ),
     ).toBe(true);
     expect(
       fs.existsSync(
-        path.join(tmpDir, ".codebuddy", "commands", "trellis", "continue.md"),
+        path.join(tmpDir, ".codebuddy", "commands", "polygon", "continue.md"),
       ),
     ).toBe(true);
     expect(fs.existsSync(path.join(tmpDir, ".claude"))).toBe(false);
@@ -431,7 +431,7 @@ describe("init() integration", () => {
       fs.existsSync(path.join(tmpDir, ".github", "copilot", "hooks.json")),
     ).toBe(true);
     expect(
-      fs.existsSync(path.join(tmpDir, ".github", "hooks", "trellis.json")),
+      fs.existsSync(path.join(tmpDir, ".github", "hooks", "polygon.json")),
     ).toBe(true);
 
     const hashFile = path.join(
@@ -449,31 +449,31 @@ describe("init() integration", () => {
     expect(trackedPaths).toContain(".github/prompts/finish-work.prompt.md");
     expect(trackedPaths).toContain(".github/prompts/continue.prompt.md");
     expect(trackedPaths).toContain(".github/copilot/hooks.json");
-    expect(trackedPaths).toContain(".github/hooks/trellis.json");
+    expect(trackedPaths).toContain(".github/hooks/polygon.json");
 
     expect(fs.existsSync(path.join(tmpDir, ".claude"))).toBe(false);
     expect(fs.existsSync(path.join(tmpDir, ".cursor"))).toBe(false);
   });
 
-  it("#3e gemini platform creates .gemini/commands/trellis", async () => {
+  it("#3e gemini platform creates .gemini/commands/polygon", async () => {
     await init({ yes: true, gemini: true });
     expect(
-      fs.existsSync(path.join(tmpDir, ".gemini", "commands", "trellis")),
+      fs.existsSync(path.join(tmpDir, ".gemini", "commands", "polygon")),
     ).toBe(true);
     // Gemini is agent-capable → start.toml not emitted.
     expect(
       fs.existsSync(
-        path.join(tmpDir, ".gemini", "commands", "trellis", "start.toml"),
+        path.join(tmpDir, ".gemini", "commands", "polygon", "start.toml"),
       ),
     ).toBe(false);
     expect(
       fs.existsSync(
-        path.join(tmpDir, ".gemini", "commands", "trellis", "finish-work.toml"),
+        path.join(tmpDir, ".gemini", "commands", "polygon", "finish-work.toml"),
       ),
     ).toBe(true);
     expect(
       fs.existsSync(
-        path.join(tmpDir, ".gemini", "commands", "trellis", "continue.toml"),
+        path.join(tmpDir, ".gemini", "commands", "polygon", "continue.toml"),
       ),
     ).toBe(true);
     expect(fs.existsSync(path.join(tmpDir, ".claude"))).toBe(false);
@@ -485,23 +485,23 @@ describe("init() integration", () => {
     // Droid is agent-capable → start.md not emitted.
     expect(
       fs.existsSync(
-        path.join(tmpDir, ".factory", "commands", "trellis", "start.md"),
+        path.join(tmpDir, ".factory", "commands", "polygon", "start.md"),
       ),
     ).toBe(false);
     expect(
       fs.existsSync(
-        path.join(tmpDir, ".factory", "commands", "trellis", "finish-work.md"),
+        path.join(tmpDir, ".factory", "commands", "polygon", "finish-work.md"),
       ),
     ).toBe(true);
     expect(
       fs.existsSync(
-        path.join(tmpDir, ".factory", "commands", "trellis", "continue.md"),
+        path.join(tmpDir, ".factory", "commands", "polygon", "continue.md"),
       ),
     ).toBe(true);
-    // Skills (trellis- prefix)
+    // Skills (polygon- prefix)
     expect(
       fs.existsSync(
-        path.join(tmpDir, ".factory", "skills", "trellis-check", "SKILL.md"),
+        path.join(tmpDir, ".factory", "skills", "polygon-check", "SKILL.md"),
       ),
     ).toBe(true);
     expect(fs.existsSync(path.join(tmpDir, ".claude"))).toBe(false);
@@ -513,27 +513,27 @@ describe("init() integration", () => {
 
     expect(fs.existsSync(path.join(tmpDir, ".pi", "settings.json"))).toBe(true);
     expect(
-      fs.existsSync(path.join(tmpDir, ".pi", "prompts", "trellis-start.md")),
+      fs.existsSync(path.join(tmpDir, ".pi", "prompts", "polygon-start.md")),
     ).toBe(false);
     expect(
       fs.existsSync(
-        path.join(tmpDir, ".pi", "prompts", "trellis-finish-work.md"),
+        path.join(tmpDir, ".pi", "prompts", "polygon-finish-work.md"),
       ),
     ).toBe(true);
     expect(
-      fs.existsSync(path.join(tmpDir, ".pi", "prompts", "trellis-continue.md")),
+      fs.existsSync(path.join(tmpDir, ".pi", "prompts", "polygon-continue.md")),
     ).toBe(true);
     expect(
       fs.existsSync(
-        path.join(tmpDir, ".pi", "skills", "trellis-check", "SKILL.md"),
+        path.join(tmpDir, ".pi", "skills", "polygon-check", "SKILL.md"),
       ),
     ).toBe(true);
     expect(
-      fs.existsSync(path.join(tmpDir, ".pi", "agents", "trellis-implement.md")),
+      fs.existsSync(path.join(tmpDir, ".pi", "agents", "polygon-implement.md")),
     ).toBe(true);
     expect(
       fs.existsSync(
-        path.join(tmpDir, ".pi", "extensions", "trellis", "index.ts"),
+        path.join(tmpDir, ".pi", "extensions", "polygon", "index.ts"),
       ),
     ).toBe(true);
     expect(fs.existsSync(path.join(tmpDir, ".pi", "hooks"))).toBe(false);
@@ -809,8 +809,8 @@ describe("init() integration", () => {
 
   it("#14 monorepo: writes packages section to config.yaml", async () => {
     setupPnpmWorkspace(tmpDir, [
-      { rel: "packages/cli", name: "@trellis/cli" },
-      { rel: "packages/docs", name: "@trellis/docs" },
+      { rel: "packages/cli", name: "@polygon/cli" },
+      { rel: "packages/docs", name: "@polygon/docs" },
     ]);
 
     await init({ yes: true });
@@ -852,8 +852,8 @@ describe("init() integration", () => {
     expect(taskJson.next_action).toBeUndefined();
 
     // relatedFiles point to spec/<name>/
-    expect(taskJson.relatedFiles).toContain(".trellis/spec/core/");
-    expect(taskJson.relatedFiles).toContain(".trellis/spec/ui/");
+    expect(taskJson.relatedFiles).toContain(".polygon/spec/core/");
+    expect(taskJson.relatedFiles).toContain(".polygon/spec/ui/");
 
     // prd.md mentions packages + renders per-package checklist items
     const prd = fs.readFileSync(path.join(taskDir, "prd.md"), "utf-8");
@@ -865,10 +865,10 @@ describe("init() integration", () => {
     expect(prd).toContain("- [ ] Fill guidelines for core");
     expect(prd).toContain("- [ ] Fill guidelines for ui");
     expect(prd).toContain(
-      `${expectedPythonCmd} ./.trellis/scripts/task.py finish`,
+      `${expectedPythonCmd} ./.polygon/scripts/task.py finish`,
     );
     expect(prd).toContain(
-      `${expectedPythonCmd} ./.trellis/scripts/task.py archive 00-bootstrap-guidelines`,
+      `${expectedPythonCmd} ./.polygon/scripts/task.py archive 00-bootstrap-guidelines`,
     );
   });
 
@@ -913,7 +913,7 @@ describe("init() integration", () => {
     );
     expect(guideCall).toBeDefined();
 
-    // Should NOT create .trellis/ (early return)
+    // Should NOT create .polygon/ (early return)
     expect(fs.existsSync(path.join(tmpDir, DIR_NAMES.WORKFLOW))).toBe(false);
   });
 
@@ -965,7 +965,7 @@ describe("init() integration", () => {
         "utf-8",
       ),
     ) as { hashes?: Record<string, string> };
-    expect(hashFile.hashes?.[".trellis/spec/index.md"]).toBe(
+    expect(hashFile.hashes?.[".polygon/spec/index.md"]).toBe(
       computeHash("# remote spec\n"),
     );
   });
@@ -1013,7 +1013,7 @@ describe("init() integration", () => {
         "utf-8",
       ),
     ) as { hashes?: Record<string, string> };
-    expect(hashFile.hashes?.[".trellis/spec/index.md"]).toBe(
+    expect(hashFile.hashes?.[".polygon/spec/index.md"]).toBe(
       computeHash("# golang spec\n"),
     );
   });
@@ -1065,7 +1065,7 @@ describe("init() integration", () => {
         "utf-8",
       ),
     ) as { hashes?: Record<string, string> };
-    expect(hashFile.hashes?.[".trellis/spec/index.md"]).toBe(
+    expect(hashFile.hashes?.[".polygon/spec/index.md"]).toBe(
       computeHash("# refreshed golang spec\n"),
     );
   });

@@ -59,9 +59,9 @@ describe("pi templates", () => {
   it("provides the three Polygon sub-agent definitions", () => {
     const agents = getAllAgents();
     expect(agents.map((agent) => agent.name).sort()).toEqual([
-      "trellis-check",
-      "trellis-implement",
-      "trellis-research",
+      "polygon-check",
+      "polygon-implement",
+      "polygon-research",
     ]);
 
     for (const agent of agents) {
@@ -89,7 +89,7 @@ describe("pi templates", () => {
     };
 
     expect(settings.enableSkillCommands).toBe(true);
-    expect(settings.extensions).toEqual(["./extensions/trellis/index.ts"]);
+    expect(settings.extensions).toEqual(["./extensions/polygon/index.ts"]);
     expect(settings.skills).toEqual(["./skills"]);
     expect(settings.skills).not.toEqual(["../.agents/skills"]);
     expect(settings.prompts).toEqual(["./prompts"]);
@@ -139,15 +139,15 @@ describe("pi templates", () => {
   it("extension injects Polygon context into Pi bash tool calls", () => {
     const extension = getExtensionTemplate();
 
-    expect(extension).toContain("function injectTrellisContextIntoBash");
+    expect(extension).toContain("function injectPolygonContextIntoBash");
     expect(extension).toContain('toolCall.toolName !== "bash"');
     expect(extension).toContain(
-      "toolCall.input.command = `export TRELLIS_CONTEXT_ID=",
+      "toolCall.input.command = `export POLYGON_CONTEXT_ID=",
     );
-    expect(extension).toContain("function commandStartsWithTrellisContext");
+    expect(extension).toContain("function commandStartsWithPolygonContext");
     expect(extension).toContain("function shellQuote");
     expect(extension).toContain(
-      "injectTrellisContextIntoBash(event, contextKey)",
+      "injectPolygonContextIntoBash(event, contextKey)",
     );
   });
 
@@ -155,8 +155,8 @@ describe("pi templates", () => {
     const extension = getExtensionTemplate();
 
     expect(extension).toContain("function resolvePiInvocation");
-    expect(extension).toContain("TRELLIS_PI_CLI_JS");
-    expect(extension).toContain("TRELLIS_PI_CLI_JS points to a missing file");
+    expect(extension).toContain("POLYGON_PI_CLI_JS");
+    expect(extension).toContain("POLYGON_PI_CLI_JS points to a missing file");
     expect(extension).toContain("process.execPath");
     expect(extension).toContain("PI_CLI_JS_SEGMENTS");
     expect(extension).toContain("process.env.APPDATA");
@@ -174,7 +174,7 @@ describe("pi templates", () => {
     expect(extension).toContain("buildSubagentPrompt(");
     expect(extension).toContain("runConfig");
     expect(extension).toContain(
-      "{ ...process.env, TRELLIS_CONTEXT_ID: contextKey }",
+      "{ ...process.env, POLYGON_CONTEXT_ID: contextKey }",
     );
     expect(extension).toContain("signal?: AbortSignal");
     expect(extension).toContain("child.kill()");
@@ -342,7 +342,7 @@ fallbackModels:
     expect(extension).toContain("systemPrompt:");
     expect(extension).toContain('pi.on?.("input", (event, ctx) => {');
     expect(extension).toContain('action: "continue"');
-    expect(extension).not.toContain("message: buildTrellisContext");
+    expect(extension).not.toContain("message: buildPolygonContext");
     expect(extension).not.toContain('message:\n      "Polygon project context');
     expect(extension).not.toContain("persistent: true");
   });
@@ -386,7 +386,7 @@ fallbackModels:
       "additionalContext, systemPrompt: additionalContext",
     );
     // Existing PRD + jsonl injection must still happen.
-    expect(extension).toContain('buildTrellisContext(\n      projectRoot,\n      "trellis-implement"');
+    expect(extension).toContain('buildPolygonContext(\n      projectRoot,\n      "polygon-implement"');
   });
 
   it("subagent tool registration carries dispatch protocol prompt snippet", () => {
@@ -397,10 +397,10 @@ fallbackModels:
     expect(extension).toContain("promptGuidelines: SUBAGENT_DISPATCH_PROTOCOL");
     // The protocol body must instruct the AI to start dispatch with the
     // canonical "Active task: <path>" line — same wording as
-    // `[workflow-state:in_progress]` in trellis/workflow.md.
+    // `[workflow-state:in_progress]` in polygon/workflow.md.
     expect(extension).toContain("Active task:");
     expect(extension).toContain("class-1");
     expect(extension).toContain("class-2");
-    expect(extension).toContain("trellis-research");
+    expect(extension).toContain("polygon-research");
   });
 });

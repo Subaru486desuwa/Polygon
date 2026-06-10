@@ -1,149 +1,83 @@
-<p align="center">
-<picture>
-<source srcset="assets/trellis.png" media="(prefers-color-scheme: dark)">
-<source srcset="assets/trellis.png" media="(prefers-color-scheme: light)">
-<img src="assets/trellis.png" alt="Trellis Logo" width="500" style="image-rendering: -webkit-optimize-contrast; image-rendering: crisp-edges;">
-</picture>
-</p>
+<h1 align="center">Polygon</h1>
 
 <p align="center">
-<strong>An out-of-the-box engineering framework for AI coding.</strong><br/>
-<sub>AI writes code fast, but every session it starts from scratch — no memory of your project, your conventions, or your team's requirements. Trellis persists specs, tasks, and memory into your repo, so any coding agent works to your engineering standards.</sub>
+<strong>A slim, trust-the-agent fork of <a href="https://github.com/mindfoldhq/trellis">Trellis</a> — persistent specs, tasks and multi-LLM activity logs for AI coding, without the ceremony.</strong>
 </p>
 
 <p align="center">
 <a href="./README_CN.md">简体中文</a> •
-<a href="https://docs.trytrellis.app/">Docs</a> •
-<a href="https://docs.trytrellis.app/start/install-and-first-task">Quick Start</a> •
-<a href="https://docs.trytrellis.app/advanced/multi-platform">Supported Platforms</a> •
-<a href="https://docs.trytrellis.app/start/real-world-scenarios">Use Cases</a>
+<a href="https://docs.trytrellis.app/">Upstream Docs</a>
 </p>
 
 <p align="center">
 <a href="https://www.npmjs.com/package/@subaru486/polygon"><img src="https://img.shields.io/npm/v/@subaru486/polygon.svg?style=flat-square&color=2563eb" alt="npm version" /></a>
-<a href="https://www.npmjs.com/package/@subaru486/polygon"><img src="https://img.shields.io/npm/dw/@subaru486/polygon?style=flat-square&color=cb3837&label=downloads" alt="npm downloads" /></a>
 <a href="https://github.com/Subaru486desuwa/Trellis/blob/main/LICENSE"><img src="https://img.shields.io/badge/license-AGPL--3.0-16a34a.svg?style=flat-square" alt="license" /></a>
-<a href="https://github.com/Subaru486desuwa/Trellis/stargazers"><img src="https://img.shields.io/github/stars/Subaru486desuwa/Trellis?style=flat-square&color=eab308" alt="stars" /></a>
-<a href="https://docs.trytrellis.app/"><img src="https://img.shields.io/badge/docs-trytrellis.app-0f766e?style=flat-square" alt="docs" /></a>
-<a href="https://discord.com/invite/tWcCZ3aRHc"><img src="https://img.shields.io/badge/Discord-Join-5865F2?style=flat-square&logo=discord&logoColor=white" alt="Discord" /></a>
-<a href="https://github.com/Subaru486desuwa/Trellis/issues"><img src="https://img.shields.io/github/issues/Subaru486desuwa/Trellis?style=flat-square&color=e67e22" alt="open issues" /></a>
-<a href="https://github.com/Subaru486desuwa/Trellis/pulls"><img src="https://img.shields.io/github/issues-pr/Subaru486desuwa/Trellis?style=flat-square&color=9b59b6" alt="open PRs" /></a>
-<a href="https://deepwiki.com/Subaru486desuwa/Trellis"><img src="https://img.shields.io/badge/Ask-DeepWiki-blue?style=flat-square" alt="Ask DeepWiki" /></a>
-<a href="https://chatgpt.com/?q=Explain+the+project+Subaru486desuwa/Trellis+on+GitHub"><img src="https://img.shields.io/badge/Ask-ChatGPT-74aa9c?style=flat-square&logo=openai&logoColor=white" alt="Ask ChatGPT" /></a>
+<a href="https://github.com/mindfoldhq/trellis"><img src="https://img.shields.io/badge/fork%20of-mindfoldhq%2Ftrellis-6b7280.svg?style=flat-square" alt="fork of trellis" /></a>
 </p>
 
-<p align="center">
-<img src="assets/trellis-demo.gif" alt="Trellis workflow demo" width="100%">
-</p>
+---
 
-## Why Trellis?
+AI coding agents start every session from scratch — no memory of your project, your conventions, or what the last session decided. Trellis solves this by persisting specs, tasks and journals into your repo. Polygon keeps that core and removes everything that gets between you and the work:
 
-| Capability | What it changes |
-| --- | --- |
-| **Auto-injected specs** | Write conventions once in `.trellis/spec/`, then let Trellis inject the relevant context into each session instead of repeating yourself. |
-| **Task-centered workflow** | Keep PRDs, implementation context, review context, and task status in `.trellis/tasks/` so AI work stays structured. |
-| **Project memory** | Journals in `.trellis/workspace/` preserve what happened last time, so each new session starts with real context. |
-| **Team-shared standards** | Specs live in the repo, so one person's hard-won workflow or rule can benefit the whole team. |
-| **Multi-platform setup** | Bring the same Trellis structure to 14 AI coding platforms instead of rebuilding your workflow per tool. |
+- **Inline-first.** The main agent edits code directly. No forced sub-agent dispatch, no override phrase allowlists, no anti-rationalization tables. Workflow rules are advisory; the agent (and you) decide what the turn actually needs.
+- **Lightweight context injection.** SessionStart payload cut from 27 KB to ~2 KB; per-turn breadcrumbs are 2–4 lines keyed on task status. Long-running daily use costs almost nothing in context.
+- **Multi-LLM activity log.** Every task carries an `activity.jsonl` recording which platform/model did what, when — so Claude Code, Codex and friends can hand work to each other with provenance intact.
 
-## Prerequisites:
-
-- **Node.js** >= 18
-- **Python** >= 3.9
-
-## Quick Start
+## Install
 
 ```bash
-# 1. Install Trellis
-npm install -g @subaru486/polygon@latest
-
-# 2. Initialize in your repo
-trellis init -u your-name
-
-# 3. Or initialize with the platforms you actually use
-trellis init --cursor --opencode --codex -u your-name
+npm install -g @subaru486/polygon
 ```
 
-See the [Quick Start](https://docs.trytrellis.app/start/install-and-first-task) and [Supported Platforms](https://docs.trytrellis.app/advanced/multi-platform) guides for setup details.
+This installs three equivalent commands: `polygon`, `trellis`, and `tl`.
 
-## How to Use
+## Quick start
 
-The workflow is simple:
+```bash
+cd your-project
+trellis init -y        # deploys the slim claude+codex setup by default
+```
 
-1. **Describe what you want** in natural language.
-2. **Brainstorm** with the AI one question at a time until the PRD is clear, then implementation begins.
-3. **Let it run** — the AI calls Trellis Implement and auto-checks the result against specs, lint, type-check, and tests.
-4. **Type `/trellis:finish-work`** when the work is done or the session context fills up. Trellis archives the task and updates journals.
+Then just describe what you want in your AI coding agent. The injected breadcrumb tells the agent to judge the turn's real size itself:
 
-## How It Works
+- Multi-turn implementation work → it creates a task, brainstorms a PRD with you, then implements.
+- Questions and quick fixes → answered inline, no task ceremony.
 
-Trellis runs a 4-phase loop with auto-invoked skills and sub-agents:
+The workflow in three phases:
 
-1. **Plan** — `trellis-brainstorm` walks through requirements one question at a time and writes `prd.md`. Research-heavy items go to a `trellis-research` sub-agent. The result is curated specs + research files referenced from `implement.jsonl` / `check.jsonl`.
-2. **Implement** — a `trellis-implement` sub-agent writes code from the PRD with the curated context auto-injected, no git commit.
-3. **Verify** — a `trellis-check` sub-agent reviews the diff against specs and runs lint, type-check, and tests, self-fixing where it can.
-4. **Finish** — a final check runs, then `trellis-update-spec` promotes new learnings back into `.trellis/spec/` so the next session starts smarter.
+| Phase | What happens | Persisted to |
+|---|---|---|
+| Plan | brainstorm + research → PRD | `.trellis/tasks/<task>/prd.md` |
+| Execute | implement in the main session; lint / type-check / tests | your code + `activity.jsonl` |
+| Finish | capture learnings → commit → archive | `.trellis/spec/`, journal, task archive |
 
-## Resources
+## Multi-LLM activity log
 
-| Need                            | Link                                                                           |
-| ------------------------------- | ------------------------------------------------------------------------------ |
-| Install Trellis in a repo       | [Quick Start](https://docs.trytrellis.app/start/install-and-first-task)        |
-| Understand platform differences | [Supported Platforms](https://docs.trytrellis.app/advanced/multi-platform)     |
-| See the workflow in practice    | [Real-World Scenarios](https://docs.trytrellis.app/start/real-world-scenarios) |
-| Start from spec templates       | [Spec Templates](https://docs.trytrellis.app/templates/specs-index)            |
-| Track releases                  | [Changelog](https://docs.trytrellis.app/changelog)                             |
+```bash
+python3 .trellis/scripts/task.py activity-log
+# 2026-06-10T04:40:40Z  [claude/-]               start: task started
+# 2026-06-10T04:40:51Z  [claude/claude-fable-5]  implement: archive smoke via updated workflow
+# 2026-06-10T04:41:02Z  [claude/-]               finish: task archived
+```
 
-## FAQ
+`task.py start` and `task.py archive` stamp automatically; `task.py activity-append` records manual entries (decisions, handoffs). `task.json` rolls contributors up into `meta.agents[]`, and journal sessions record an `**Agent**:` line — switch between Claude Code and Codex mid-task without losing who did what.
 
-<details>
-<summary><strong>How is Trellis different from <code>CLAUDE.md</code>, <code>AGENTS.md</code>, or <code>.cursorrules</code>?</strong></summary>
+## How this differs from upstream Trellis
 
-Those files are useful entry points, but they tend to become monolithic. Trellis adds scoped specs, task PRDs, workflow gates, workspace memory, and platform-aware generated files around them.
+| | Upstream Trellis | Polygon |
+|---|---|---|
+| Dispatch model | sub-agents mandatory for implement/check | inline by default, sub-agents optional |
+| Workflow rules | enforced (override phrases, jsonl gates) | advisory |
+| SessionStart payload | ~27 KB | ~2 KB |
+| Per-turn breadcrumb | full state block | 2–4 lines |
+| Deployed workflow.md | per-platform variants | one ~290-line platform-neutral guide |
+| Activity log | — | `activity.jsonl` per task, multi-LLM |
+| Default platforms | interactive choice | claude + codex (`-y`) |
 
-</details>
+Multi-platform assets (Cursor, Gemini CLI, Copilot, …) are retained in the npm package — other platform flags still work and receive the generic slim content.
 
-<details>
-<summary><strong>Is Trellis only for Claude Code?</strong></summary>
+## Credits & license
 
-No. Trellis is a project layer that works across multiple coding agents and IDEs.
+Polygon is a fork of [mindfoldhq/trellis](https://github.com/mindfoldhq/trellis) by the Trellis team — the task/spec/journal architecture, multi-platform support and update machinery are theirs. The [upstream docs](https://docs.trytrellis.app/) remain a good reference for core concepts; where behavior differs, this README is authoritative for Polygon.
 
-</details>
-
-<details>
-<summary><strong>Is Trellis for solo developers or teams?</strong></summary>
-
-Both. Solo developers use it for memory and repeatable workflow. Teams get the larger benefit: shared standards, task boundaries, reviewable context, and platform portability.
-
-</details>
-
-<details>
-<summary><strong>Do I have to write every spec file manually?</strong></summary>
-
-No. Many teams start by letting AI draft specs from existing code and then tighten the important parts by hand. Trellis works best when you keep the high-signal rules explicit and versioned.
-
-</details>
-
-<details>
-<summary><strong>Can teams use this without constant conflicts?</strong></summary>
-
-Yes. Personal workspace journals stay separate per developer, while shared specs and tasks stay in the repo where they can be reviewed and improved like any other project artifact.
-
-</details>
-
-## Star History
-
-[![Star History Chart](https://api.star-history.com/svg?repos=Subaru486desuwa/Trellis&type=Date)](https://star-history.com/#Subaru486desuwa/Trellis&Date)
-
-## Community & Resources
-
-- [Official Docs](https://docs.trytrellis.app/)
-- [GitHub Issues](https://github.com/Subaru486desuwa/Trellis/issues)
-- [Discord](https://discord.com/invite/tWcCZ3aRHc)
-- [Tech Blog](https://docs.trytrellis.app/blog)
-
-<p align="center">
-<a href="https://github.com/Subaru486desuwa/Trellis">Official Repository</a> •
-<a href="https://github.com/Subaru486desuwa/Trellis/blob/main/LICENSE">AGPL-3.0 License</a> •
-Built by <a href="https://github.com/mindfold-ai">Mindfold</a>
-</p>
+Licensed under [AGPL-3.0](./LICENSE), same as upstream.

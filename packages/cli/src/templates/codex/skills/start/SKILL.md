@@ -1,6 +1,6 @@
 ---
 name: start
-description: "Initializes an AI development session by reading workflow guides, developer identity, git status, active tasks, and project guidelines from .trellis/. Classifies incoming tasks and routes to brainstorm, direct edit, or task workflow. Use when beginning a new coding session, resuming work, starting a new task, or re-establishing project context."
+description: "Initializes an AI development session by reading workflow guides, developer identity, git status, active tasks, and project guidelines from .polygon/. Classifies incoming tasks and routes to brainstorm, direct edit, or task workflow. Use when beginning a new coding session, resuming work, starting a new task, or re-establishing project context."
 ---
 
 # Start Session
@@ -25,7 +25,7 @@ Initialize your AI development session and begin working on tasks.
 First, read the workflow guide to understand the development process:
 
 ```bash
-cat .trellis/workflow.md
+cat .polygon/workflow.md
 ```
 
 **Follow the instructions in workflow.md** - it contains:
@@ -37,7 +37,7 @@ cat .trellis/workflow.md
 ### Step 2: Get Current Context
 
 ```bash
-python3 ./.trellis/scripts/get_context.py
+python3 ./.polygon/scripts/get_context.py
 ```
 
 This shows: developer identity, git status, current task (if any), active tasks.
@@ -45,14 +45,14 @@ This shows: developer identity, git status, current task (if any), active tasks.
 ### Step 3: Read Guidelines Index
 
 ```bash
-python3 ./.trellis/scripts/get_context.py --mode packages
+python3 ./.polygon/scripts/get_context.py --mode packages
 ```
 
 This shows available packages and their spec layers. Read the relevant spec indexes:
 
 ```bash
-cat .trellis/spec/<package>/<layer>/index.md   # Package-specific guidelines
-cat .trellis/spec/guides/index.md              # Thinking guides (always read)
+cat .polygon/spec/<package>/<layer>/index.md   # Package-specific guidelines
+cat .polygon/spec/guides/index.md              # Thinking guides (always read)
 ```
 
 > **Important**: The index files are navigation — they list the actual guideline files (e.g., `error-handling.md`, `conventions.md`, `mock-strategies.md`).
@@ -174,7 +174,7 @@ If unclear, ask clarifying questions.
 **Step 2: Create Task Directory** `[AI]`
 
 ```bash
-TASK_DIR=$(python3 ./.trellis/scripts/task.py create "<title>" --slug <name>)
+TASK_DIR=$(python3 ./.polygon/scripts/task.py create "<title>" --slug <name>)
 ```
 
 **Step 3: Write PRD** `[AI]`
@@ -225,7 +225,7 @@ Must-have before proceeding:
 
 Based on the confirmed PRD, run a focused research pass and produce:
 
-1. Relevant spec files in `.trellis/spec/`
+1. Relevant spec files in `.polygon/spec/`
 2. Existing code patterns to follow (2-3 examples)
 3. Files that will likely need modification
 
@@ -246,30 +246,30 @@ Use this output format:
 
 `implement.jsonl` and `check.jsonl` were seeded on `task.py create` with a single self-describing `_example` line. Curate real entries now (see workflow.md Phase 1.3 for the full rule):
 
-- Put **spec files** (`.trellis/spec/<package>/<layer>/*.md`) and **research files** (`{TASK_DIR}/research/*.md`) only.
+- Put **spec files** (`.polygon/spec/<package>/<layer>/*.md`) and **research files** (`{TASK_DIR}/research/*.md`) only.
 - Do NOT put code files (`src/**`, `packages/**`) — those are read during implementation, not pre-registered here.
 - Split: `implement.jsonl` = specs the implement sub-agent needs; `check.jsonl` = specs the check sub-agent needs.
 
 Discover available specs:
 
 ```bash
-python3 ./.trellis/scripts/get_context.py --mode packages
+python3 ./.polygon/scripts/get_context.py --mode packages
 ```
 
 Append entries (either edit the jsonl file directly, or):
 
 ```bash
-python3 ./.trellis/scripts/task.py add-context "$TASK_DIR" implement "<path>" "<reason>"
-python3 ./.trellis/scripts/task.py add-context "$TASK_DIR" check "<path>" "<reason>"
+python3 ./.polygon/scripts/task.py add-context "$TASK_DIR" implement "<path>" "<reason>"
+python3 ./.polygon/scripts/task.py add-context "$TASK_DIR" check "<path>" "<reason>"
 ```
 
 **Step 7: Activate Task** `[AI]`
 
 ```bash
-python3 ./.trellis/scripts/task.py start "$TASK_DIR"
+python3 ./.polygon/scripts/task.py start "$TASK_DIR"
 ```
 
-This sets the active task through Polygon' session resolver so hooks can inject context for this AI session. If the command fails because no session identity is available, rerun it from an IDE/session that exposes session identity or set `TRELLIS_CONTEXT_ID`.
+This sets the active task through Polygon' session resolver so hooks can inject context for this AI session. If the command fails because no session identity is available, rerun it from an IDE/session that exposes session identity or set `POLYGON_CONTEXT_ID`.
 
 ---
 
@@ -328,12 +328,12 @@ If yes, resume from the appropriate step (usually Step 7 or 8).
 
 | Script | Purpose |
 |--------|---------|
-| `python3 ./.trellis/scripts/get_context.py` | Get session context |
-| `python3 ./.trellis/scripts/task.py create` | Create task directory (seeds jsonl on sub-agent platforms) |
-| `python3 ./.trellis/scripts/task.py add-context` | Append spec/research entry to jsonl |
-| `python3 ./.trellis/scripts/task.py start` | Set current task |
-| `python3 ./.trellis/scripts/task.py finish` | Clear current task |
-| `python3 ./.trellis/scripts/task.py archive` | Archive completed task |
+| `python3 ./.polygon/scripts/get_context.py` | Get session context |
+| `python3 ./.polygon/scripts/task.py create` | Create task directory (seeds jsonl on sub-agent platforms) |
+| `python3 ./.polygon/scripts/task.py add-context` | Append spec/research entry to jsonl |
+| `python3 ./.polygon/scripts/task.py start` | Set current task |
+| `python3 ./.polygon/scripts/task.py finish` | Clear current task |
+| `python3 ./.polygon/scripts/task.py archive` | Archive completed task |
 
 ### Workflow Phases `[AI]`
 

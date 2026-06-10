@@ -4,44 +4,44 @@
   "migrations": [
     {
       "type": "rename-dir",
-      "from": ".trellis/agent-traces",
-      "to": ".trellis/workspace",
+      "from": ".polygon/agent-traces",
+      "to": ".polygon/workspace",
       "description": "Rename agent-traces to workspace (developer work records)"
     },
     {
       "type": "rename-dir",
-      "from": ".trellis/structure",
-      "to": ".trellis/spec",
+      "from": ".polygon/structure",
+      "to": ".polygon/spec",
       "description": "Rename structure to spec (development guidelines)"
     },
     {
       "type": "rename-dir",
-      "from": ".trellis/backlog",
-      "to": ".trellis/tasks",
+      "from": ".polygon/backlog",
+      "to": ".polygon/tasks",
       "description": "Rename backlog to tasks (unified task tracking)"
     },
     {
       "type": "rename",
-      "from": ".trellis/scripts/feature.sh",
-      "to": ".trellis/scripts/task.sh",
+      "from": ".polygon/scripts/feature.sh",
+      "to": ".polygon/scripts/task.sh",
       "description": "Rename feature.sh to task.sh"
     },
     {
       "type": "rename",
-      "from": ".trellis/scripts/common/backlog.sh",
-      "to": ".trellis/scripts/common/task-queue.sh",
+      "from": ".polygon/scripts/common/backlog.sh",
+      "to": ".polygon/scripts/common/task-queue.sh",
       "description": "Rename backlog.sh to task-queue.sh"
     },
     {
       "type": "rename",
-      "from": ".trellis/scripts/common/feature-utils.sh",
-      "to": ".trellis/scripts/common/task-utils.sh",
+      "from": ".polygon/scripts/common/feature-utils.sh",
+      "to": ".polygon/scripts/common/task-utils.sh",
       "description": "Rename feature-utils.sh to task-utils.sh"
     },
     {
       "type": "rename",
-      "from": ".trellis/.current-feature",
-      "to": ".trellis/.current-task",
+      "from": ".polygon/.current-feature",
+      "to": ".polygon/.current-task",
       "description": "Rename .current-feature to .current-task"
     }
   ],

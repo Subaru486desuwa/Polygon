@@ -14,13 +14,13 @@ git status
 ## Step 2: Read Applicable Specs
 
 ```bash
-python3 ./.trellis/scripts/get_context.py --mode packages
+python3 ./.polygon/scripts/get_context.py --mode packages
 ```
 
 For each changed package/layer, read the spec index and follow its **Quality Check** section:
 
 ```bash
-cat .trellis/spec/<package>/<layer>/index.md
+cat .polygon/spec/<package>/<layer>/index.md
 ```
 
 Read the specific guideline files referenced — the index is a pointer, not the goal.
@@ -47,7 +47,7 @@ Run the project's lint, type-check, and test commands. Fix any failures before p
 
 ### Spec Sync
 
-- [ ] Does `.trellis/spec/` need updates? (new patterns, conventions, lessons learned)
+- [ ] Does `.polygon/spec/` need updates? (new patterns, conventions, lessons learned)
 
 > "If I fixed a bug or discovered something non-obvious, should I document it so future me won't hit the same issue?" → If YES, update the relevant spec doc.
 

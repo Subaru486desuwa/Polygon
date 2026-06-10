@@ -14,9 +14,9 @@ const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const repoRoot = path.resolve(__dirname, "../../../..");
 
 const EXPECTED_AGENT_NAMES = [
-  "trellis-check",
-  "trellis-implement",
-  "trellis-research",
+  "polygon-check",
+  "polygon-implement",
+  "polygon-research",
 ];
 
 // Shared skills are now sourced from common/ via resolveAllAsSkills
@@ -33,8 +33,8 @@ describe("codex shared skills (from common source)", () => {
   it("does not include platform-specific syntax in resolved output", () => {
     const skills = resolveAllAsSkills(AI_TOOLS.codex.templateContext);
     for (const skill of skills) {
-      // Codex uses $ prefix, not /trellis:
-      expect(skill.content).not.toContain("/trellis:");
+      // Codex uses $ prefix, not /polygon:
+      expect(skill.content).not.toContain("/polygon:");
       expect(skill.content).not.toContain(".claude/");
       expect(skill.content).not.toContain(".cursor/");
     }
@@ -88,14 +88,14 @@ describe("codex getConfigTemplate", () => {
 // Issue #234 — Codex sub-agent recursion guard
 // =============================================================================
 //
-// trellis-implement / trellis-check agent toml MUST contain a hard recursion
+// polygon-implement / polygon-check agent toml MUST contain a hard recursion
 // guard that tells the sub-agent it is already the dispatched agent and must
-// not spawn another trellis-implement / trellis-check sub-agent. Without this,
-// SessionStart's "dispatch trellis-implement" guidance leaks into sub-agent
+// not spawn another polygon-implement / polygon-check sub-agent. Without this,
+// SessionStart's "dispatch polygon-implement" guidance leaks into sub-agent
 // sessions and causes infinite recursion (see PRD).
 describe("codex sub-agent recursion guard (issue #234)", () => {
-  for (const name of ["trellis-implement", "trellis-check"] as const) {
-    it(`${name}.toml developer_instructions forbids spawning trellis-implement / trellis-check`, () => {
+  for (const name of ["polygon-implement", "polygon-check"] as const) {
+    it(`${name}.toml developer_instructions forbids spawning polygon-implement / polygon-check`, () => {
       const tomlPath = path.join(
         repoRoot,
         "packages/cli/src/templates/codex/agents",
@@ -105,8 +105,8 @@ describe("codex sub-agent recursion guard (issue #234)", () => {
       // Hard prohibition keyword
       expect(content).toMatch(/MUST NOT spawn/i);
       // Mentions both sibling agent kinds explicitly
-      expect(content).toContain("trellis-implement");
-      expect(content).toContain("trellis-check");
+      expect(content).toContain("polygon-implement");
+      expect(content).toContain("polygon-check");
       // Mentions the leakage source so the reader knows why
       expect(content).toMatch(/SessionStart|dispatch.*main session|breadcrumb/i);
     });

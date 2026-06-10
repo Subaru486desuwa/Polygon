@@ -6,7 +6,7 @@
     {
       "type": "fix",
       "scope": "agents",
-      "description": "Correct task directory path in dispatch.md and plan.md (was .trellis/workspace/{dev}/tasks/, now .trellis/tasks/)"
+      "description": "Correct task directory path in dispatch.md and plan.md (was .polygon/workspace/{dev}/tasks/, now .polygon/tasks/)"
     },
     {
       "type": "fix",

@@ -2,7 +2,7 @@
  * Unit tests for uninstall-scrubbers.
  *
  * Each scrubber gets coverage for:
- *  - Strips trellis content
+ *  - Strips polygon content
  *  - Preserves user-added content
  *  - Reports `fullyEmpty: true` when nothing meaningful remains
  */
@@ -29,7 +29,7 @@ const CURSOR_DELETE_PATHS = [
 ];
 
 describe("scrubHooksJson — nested schema", () => {
-  it("strips trellis hook entries from a Claude-style file", () => {
+  it("strips polygon hook entries from a Claude-style file", () => {
     const input = {
       env: { CLAUDE_BASH_MAINTAIN_PROJECT_WORKING_DIR: "1" },
       hooks: {
@@ -109,7 +109,7 @@ describe("scrubHooksJson — nested schema", () => {
     expect(fullyEmpty).toBe(false);
   });
 
-  it("reports fullyEmpty when only trellis hooks existed", () => {
+  it("reports fullyEmpty when only polygon hooks existed", () => {
     const input = {
       hooks: {
         SessionStart: [
@@ -202,7 +202,7 @@ describe("scrubHooksJson — nested schema", () => {
 });
 
 describe("scrubHooksJson — flat schema", () => {
-  it("strips trellis hook entries from a Cursor-style file", () => {
+  it("strips polygon hook entries from a Cursor-style file", () => {
     const input = {
       version: 1,
       hooks: {
@@ -285,7 +285,7 @@ describe("scrubHooksJson — flat schema", () => {
     expect(JSON.parse(content)).toEqual({});
   });
 
-  it("reports fullyEmpty when only trellis hooks existed", () => {
+  it("reports fullyEmpty when only polygon hooks existed", () => {
     const input = {
       hooks: {
         sessionStart: [
@@ -331,10 +331,10 @@ describe("scrubOpencodePackageJson", () => {
 });
 
 describe("scrubPiSettings", () => {
-  it("strips trellis entries and reports fullyEmpty", () => {
+  it("strips polygon entries and reports fullyEmpty", () => {
     const input = {
       enableSkillCommands: true,
-      extensions: ["./extensions/trellis/index.ts"],
+      extensions: ["./extensions/polygon/index.ts"],
       skills: ["./skills"],
       prompts: ["./prompts"],
       packages: [
@@ -357,7 +357,7 @@ describe("scrubPiSettings", () => {
   it("preserves user-added array entries", () => {
     const input = {
       enableSkillCommands: true,
-      extensions: ["./extensions/trellis/index.ts", "./extensions/my-ext"],
+      extensions: ["./extensions/polygon/index.ts", "./extensions/my-ext"],
       skills: ["./skills", "./other-skills"],
       prompts: ["./prompts"],
       packages: [
@@ -412,7 +412,7 @@ project_doc_fallback_filenames = ["AGENTS.md"]
 # be injected into Codex sessions.
 `;
 
-  it("removes the entire trellis-shipped file and reports fullyEmpty", () => {
+  it("removes the entire polygon-shipped file and reports fullyEmpty", () => {
     const { content, fullyEmpty } = scrubCodexConfigToml(TEMPLATE);
     expect(fullyEmpty).toBe(true);
     expect(content.trim()).toBe("");

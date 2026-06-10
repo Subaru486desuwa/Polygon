@@ -100,7 +100,7 @@ message above this hook output, that message is your only job.
 - Ignore all Polygon workflow guidance below this notice.
 - Do NOT call task.py start, task.py add-context, or task.py archive.
 - Do NOT call wait_agent or spawn_agent.
-- Do NOT modify .trellis/tasks/* or any other file unless the parent message
+- Do NOT modify .polygon/tasks/* or any other file unless the parent message
   explicitly asks for that.
 
 If you are the main interactive Codex session and the user is typing at the
@@ -109,16 +109,16 @@ terminal with no parent agent, use the workflow guidance below normally.
 
 
 def should_skip_injection() -> bool:
-    if os.environ.get("TRELLIS_HOOKS") == "0":
+    if os.environ.get("POLYGON_HOOKS") == "0":
         return True
-    if os.environ.get("TRELLIS_DISABLE_HOOKS") == "1":
+    if os.environ.get("POLYGON_DISABLE_HOOKS") == "1":
         return True
     return os.environ.get("CODEX_NON_INTERACTIVE") == "1"
 
 
 def configure_project_encoding(project_dir: Path) -> None:
     """Reuse Polygon' shared Windows stdio encoding helper before JSON output."""
-    scripts_dir = project_dir / ".trellis" / "scripts"
+    scripts_dir = project_dir / ".polygon" / "scripts"
     if str(scripts_dir) not in sys.path:
         sys.path.insert(0, str(scripts_dir))
 
@@ -138,7 +138,7 @@ def read_file(path: Path, fallback: str = "") -> str:
 
 
 def _resolve_context_key(project_dir: Path, hook_input: dict) -> str | None:
-    scripts_dir = project_dir / ".trellis" / "scripts"
+    scripts_dir = project_dir / ".polygon" / "scripts"
     if str(scripts_dir) not in sys.path:
         sys.path.insert(0, str(scripts_dir))
     try:
@@ -148,13 +148,13 @@ def _resolve_context_key(project_dir: Path, hook_input: dict) -> str | None:
     return resolve_context_key(hook_input, platform="codex")
 
 
-def _resolve_active_task(trellis_dir: Path, hook_input: dict):
-    scripts_dir = trellis_dir / "scripts"
+def _resolve_active_task(polygon_dir: Path, hook_input: dict):
+    scripts_dir = polygon_dir / "scripts"
     if str(scripts_dir) not in sys.path:
         sys.path.insert(0, str(scripts_dir))
     from common.active_task import resolve_active_task  # type: ignore[import-not-found]
 
-    return resolve_active_task(trellis_dir.parent, hook_input, platform="codex")
+    return resolve_active_task(polygon_dir.parent, hook_input, platform="codex")
 
 
 def run_script(script_path: Path, context_key: str | None = None) -> str:
@@ -162,7 +162,7 @@ def run_script(script_path: Path, context_key: str | None = None) -> str:
         env = os.environ.copy()
         env["PYTHONIOENCODING"] = "utf-8"
         if context_key:
-            env["TRELLIS_CONTEXT_ID"] = context_key
+            env["POLYGON_CONTEXT_ID"] = context_key
         cmd = [sys.executable, "-W", "ignore", str(script_path)]
         result = subprocess.run(
             cmd,
@@ -193,35 +193,35 @@ def _normalize_task_ref(task_ref: str) -> str:
         normalized = normalized[2:]
 
     if normalized.startswith("tasks/"):
-        return f".trellis/{normalized}"
+        return f".polygon/{normalized}"
 
     return normalized
 
 
-def _resolve_task_dir(trellis_dir: Path, task_ref: str) -> Path:
+def _resolve_task_dir(polygon_dir: Path, task_ref: str) -> Path:
     normalized = _normalize_task_ref(task_ref)
     path_obj = Path(normalized)
     if path_obj.is_absolute():
         return path_obj
-    if normalized.startswith(".trellis/"):
-        return trellis_dir.parent / path_obj
-    return trellis_dir / "tasks" / path_obj
+    if normalized.startswith(".polygon/"):
+        return polygon_dir.parent / path_obj
+    return polygon_dir / "tasks" / path_obj
 
 
-def _get_task_status(trellis_dir: Path, hook_input: dict) -> str:
-    active = _resolve_active_task(trellis_dir, hook_input)
+def _get_task_status(polygon_dir: Path, hook_input: dict) -> str:
+    active = _resolve_active_task(polygon_dir, hook_input)
     if not active.task_path:
         return (
             f"Status: NO ACTIVE TASK\nSource: {active.source}\n"
             "Next: judge the request's real size — multi-turn implementation work worth a "
-            "persistent record gets `python3 ./.trellis/scripts/task.py create`; "
+            "persistent record gets `python3 ./.polygon/scripts/task.py create`; "
             "questions and quick fixes are handled directly, no ceremony"
         )
 
     task_ref = active.task_path
-    task_dir = _resolve_task_dir(trellis_dir, task_ref)
+    task_dir = _resolve_task_dir(polygon_dir, task_ref)
     if active.stale or not task_dir.is_dir():
-        return f"Status: STALE POINTER\nTask: {task_ref}\nSource: {active.source}\nNext: Task directory not found. Run: python3 ./.trellis/scripts/task.py finish"
+        return f"Status: STALE POINTER\nTask: {task_ref}\nSource: {active.source}\nNext: Task directory not found. Run: python3 ./.polygon/scripts/task.py finish"
 
     task_json_path = task_dir / "task.json"
     task_data: dict = {}
@@ -235,7 +235,7 @@ def _get_task_status(trellis_dir: Path, hook_input: dict) -> str:
     task_status = task_data.get("status", "unknown")
 
     if task_status == "completed":
-        return f"Status: COMPLETED\nTask: {task_title}\nSource: {active.source}\nNext: Archive with `python3 ./.trellis/scripts/task.py archive {task_dir.name}` or start a new task"
+        return f"Status: COMPLETED\nTask: {task_title}\nSource: {active.source}\nNext: Archive with `python3 ./.polygon/scripts/task.py archive {task_dir.name}` or start a new task"
 
     has_prd = (task_dir / "prd.md").is_file()
 
@@ -267,9 +267,9 @@ def _build_workflow_toc(workflow_path: Path) -> str:
     return (
         "Phase 1: Plan    -> brainstorm + research -> prd.md  (task.py create, then task.py start)\n"
         "Phase 2: Execute -> implement in the main session by default; lint / type-check / tests\n"
-        "Phase 3: Finish  -> capture learnings -> commit -> /trellis:finish-work\n"
-        "Full guide: .trellis/workflow.md (read on demand)\n"
-        "Step detail: python3 ./.trellis/scripts/get_context.py --mode phase --step <X.Y>"
+        "Phase 3: Finish  -> capture learnings -> commit -> /polygon:finish-work\n"
+        "Full guide: .polygon/workflow.md (read on demand)\n"
+        "Step detail: python3 ./.polygon/scripts/get_context.py --mode phase --step <X.Y>"
     )
 
 
@@ -289,7 +289,7 @@ def main() -> None:
 
     configure_project_encoding(project_dir)
 
-    trellis_dir = project_dir / ".trellis"
+    polygon_dir = project_dir / ".polygon"
     context_key = _resolve_context_key(project_dir, hook_input)
 
     output = StringIO()
@@ -305,12 +305,12 @@ Read and follow all instructions below carefully.
 """)
 
     output.write("<current-state>\n")
-    context_script = trellis_dir / "scripts" / "get_context.py"
+    context_script = polygon_dir / "scripts" / "get_context.py"
     output.write(run_script(context_script, context_key))
     output.write("\n</current-state>\n\n")
 
     output.write("<workflow>\n")
-    output.write(_build_workflow_toc(trellis_dir / "workflow.md"))
+    output.write(_build_workflow_toc(polygon_dir / "workflow.md"))
     output.write("\n</workflow>\n\n")
 
     output.write("<guidelines>\n")
@@ -324,14 +324,14 @@ Read and follow all instructions below carefully.
 
     # Spec indexes — paths only (read on demand)
     paths: list[str] = []
-    spec_dir = trellis_dir / "spec"
+    spec_dir = polygon_dir / "spec"
     if spec_dir.is_dir():
         for sub in sorted(spec_dir.iterdir()):
             if not sub.is_dir() or sub.name.startswith("."):
                 continue
             index_file = sub / "index.md"
             if index_file.is_file():
-                paths.append(f".trellis/spec/{sub.name}/index.md")
+                paths.append(f".polygon/spec/{sub.name}/index.md")
             else:
                 for nested in sorted(sub.iterdir()):
                     if not nested.is_dir():
@@ -339,7 +339,7 @@ Read and follow all instructions below carefully.
                     nested_index = nested / "index.md"
                     if nested_index.is_file():
                         paths.append(
-                            f".trellis/spec/{sub.name}/{nested.name}/index.md"
+                            f".polygon/spec/{sub.name}/{nested.name}/index.md"
                         )
 
     if paths:
@@ -350,7 +350,7 @@ Read and follow all instructions below carefully.
 
     output.write("</guidelines>\n\n")
 
-    task_status = _get_task_status(trellis_dir, hook_input)
+    task_status = _get_task_status(polygon_dir, hook_input)
     output.write(f"<task-status>\n{task_status}\n</task-status>\n\n")
 
     output.write("""<ready>

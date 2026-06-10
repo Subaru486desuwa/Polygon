@@ -14,7 +14,7 @@ import inquirer from "inquirer";
 // === External dependency mocks (hoisted by vitest) ===
 
 vi.mock("figlet", () => ({
-  default: { textSync: vi.fn(() => "TRELLIS") },
+  default: { textSync: vi.fn(() => "POLYGON") },
 }));
 
 vi.mock("inquirer", () => ({
@@ -55,7 +55,7 @@ import { update } from "../../src/commands/update.js";
 import { VERSION } from "../../src/constants/version.js";
 import { DIR_NAMES, FILE_NAMES, PATHS } from "../../src/constants/paths.js";
 import { computeHash } from "../../src/utils/template-hash.js";
-import { workflowMdTemplate } from "../../src/templates/trellis/index.js";
+import { workflowMdTemplate } from "../../src/templates/polygon/index.js";
 import { replacePythonCommandLiterals } from "../../src/configurators/shared.js";
 
 // A managed template file that update always handles (Python script)
@@ -158,7 +158,7 @@ describe("update() integration", () => {
   }
 
   beforeEach(() => {
-    tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), "trellis-update-int-"));
+    tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), "polygon-update-int-"));
     vi.spyOn(process, "cwd").mockReturnValue(tmpDir);
     registryDownload.files.clear();
     // eslint-disable-next-line @typescript-eslint/no-empty-function
@@ -367,14 +367,14 @@ describe("update() integration", () => {
     expect(fs.readFileSync(targetFull, "utf-8")).toBe(modifiedOldContent);
   });
 
-  it("#4d preserves user AGENTS.md without TRELLIS markers by appending the managed block", async () => {
+  it("#4d preserves user AGENTS.md without POLYGON markers by appending the managed block", async () => {
     await setupProject();
 
     const targetRelative = FILE_NAMES.AGENTS;
     const targetFull = path.join(tmpDir, targetRelative);
     const templateContent = fs.readFileSync(targetFull, "utf-8");
 
-    // User has a hand-written AGENTS.md with no TRELLIS:START/END markers at
+    // User has a hand-written AGENTS.md with no POLYGON:START/END markers at
     // all (predates 0.5.0-beta.18 or was authored by hand). Pre-fix behavior
     // would clobber this content; post-fix should append the managed block.
     const userContent = "# Project notes\n\nThings the team agreed on.\n";
@@ -385,11 +385,11 @@ describe("update() integration", () => {
     const result = fs.readFileSync(targetFull, "utf-8");
     expect(result).toContain("# Project notes");
     expect(result).toContain("Things the team agreed on.");
-    expect(result).toContain("<!-- TRELLIS:START -->");
-    expect(result).toContain("<!-- TRELLIS:END -->");
+    expect(result).toContain("<!-- POLYGON:START -->");
+    expect(result).toContain("<!-- POLYGON:END -->");
     // Managed block should sit AFTER the user content, not replace it.
     expect(result.indexOf("# Project notes")).toBeLessThan(
-      result.indexOf("<!-- TRELLIS:START -->"),
+      result.indexOf("<!-- POLYGON:START -->"),
     );
     // Tail equals the canonical template (force-applied managed block).
     expect(result.endsWith(templateContent.trimEnd() + "\n")).toBe(true);
@@ -561,7 +561,7 @@ describe("update() integration", () => {
       "#### 2.1 Implement `[required · repeatable]`\n\n" +
       "[Codex]\nSpawn the implement sub-agent:\n[/Codex]\n\n" +
       "[Kilo, Antigravity, Windsurf]\n" +
-      "1. Load the `trellis-before-dev` skill to read project guidelines\n" +
+      "1. Load the `polygon-before-dev` skill to read project guidelines\n" +
       "[/Kilo, Antigravity, Windsurf]\n";
 
     stageVersionedUpgradeProject({
@@ -852,7 +852,7 @@ describe("update() integration", () => {
 
     // Create a deprecated file that exists in the 0.4.0-beta.1 safe-file-delete manifest
     // but with user-modified content (hash won't match allowed_hashes)
-    const deprecatedDir = path.join(tmpDir, ".claude", "commands", "trellis");
+    const deprecatedDir = path.join(tmpDir, ".claude", "commands", "polygon");
     fs.mkdirSync(deprecatedDir, { recursive: true });
     const deprecatedFile = path.join(deprecatedDir, "before-backend-dev.md");
     const userContent =
@@ -870,7 +870,7 @@ describe("update() integration", () => {
     await setupProject();
 
     // Simulate upgrading from an old version — deprecated files don't exist
-    // The manifest has safe-file-delete entries for .claude/commands/trellis/before-backend-dev.md etc.
+    // The manifest has safe-file-delete entries for .claude/commands/polygon/before-backend-dev.md etc.
     // but init() doesn't create them (templates removed). update() should not crash.
     const versionPath = path.join(tmpDir, DIR_NAMES.WORKFLOW, ".version");
     fs.writeFileSync(versionPath, "0.3.7");
@@ -884,6 +884,10 @@ describe("update() integration", () => {
 
   // Original template content for check-backend.md (deleted in 0.4.0-beta.1).
   // Hash: 4e81a28d681ea770f780df55a212fd504ce21ee49b44ba16023b74b5c243cef3
+  // This is a content-addressed contract with the historical bytes real users
+  // have on disk — it predates the Polygon rebrand, so it MUST keep the
+  // `.trellis/` paths verbatim or the hash (and the safe-file-delete match)
+  // breaks. Do not migrate these strings to `.polygon/`.
   const ORIGINAL_CHECK_BACKEND_CONTENT = [
     "Check if the code you just wrote follows the backend development guidelines.",
     "",
@@ -911,7 +915,7 @@ describe("update() integration", () => {
 
     // Create a deprecated file with original content (hash matches allowed_hashes)
     // Without update.skip, collectSafeFileDeletes() would delete this file.
-    const deprecatedDir = path.join(tmpDir, ".claude", "commands", "trellis");
+    const deprecatedDir = path.join(tmpDir, ".claude", "commands", "polygon");
     fs.mkdirSync(deprecatedDir, { recursive: true });
     const deprecatedFile = path.join(deprecatedDir, "check-backend.md");
     fs.writeFileSync(deprecatedFile, ORIGINAL_CHECK_BACKEND_CONTENT);
@@ -921,7 +925,7 @@ describe("update() integration", () => {
     const configContent = fs.readFileSync(configPath, "utf-8");
     fs.writeFileSync(
       configPath,
-      configContent + `\nupdate:\n  skip:\n    - .claude/commands/trellis/\n`,
+      configContent + `\nupdate:\n  skip:\n    - .claude/commands/polygon/\n`,
     );
 
     await update({ force: true });
@@ -942,7 +946,7 @@ describe("update() integration", () => {
     );
 
     // Create deprecated file with original content (hash matches allowed_hashes)
-    const deprecatedDir = path.join(tmpDir, ".claude", "commands", "trellis");
+    const deprecatedDir = path.join(tmpDir, ".claude", "commands", "polygon");
     fs.mkdirSync(deprecatedDir, { recursive: true });
     const deprecatedFile = path.join(deprecatedDir, "check-backend.md");
     fs.writeFileSync(deprecatedFile, ORIGINAL_CHECK_BACKEND_CONTENT);
@@ -998,7 +1002,7 @@ describe("update() integration", () => {
     fs.writeFileSync(versionPath, "0.4.0");
     // Create one legacy file that matches a `rename` entry in 0.5.0-beta.0 manifest.
     // Without this, classifyMigrations finds no work → early-exit before gate.
-    const legacyDir = path.join(tmpDir, ".claude", "commands", "trellis");
+    const legacyDir = path.join(tmpDir, ".claude", "commands", "polygon");
     fs.mkdirSync(legacyDir, { recursive: true });
     fs.writeFileSync(path.join(legacyDir, "before-dev.md"), "legacy content");
   }
@@ -1006,7 +1010,7 @@ describe("update() integration", () => {
   /** Delete the post-init target so classifyMigrations hits the "new doesn't exist"
    *  branch and respects `isTemplateModified` on the source (→ confirm bucket). */
   function clearMigrationTarget(): void {
-    fs.rmSync(path.join(tmpDir, ".claude/skills/trellis-before-dev"), {
+    fs.rmSync(path.join(tmpDir, ".claude/skills/polygon-before-dev"), {
       recursive: true,
       force: true,
     });
@@ -1059,7 +1063,7 @@ describe("update() integration", () => {
   // The [b] Backup-rename path in the confirm prompt promises "keeps a .backup
   // copy". Previously it was identical to [r] (both relied on the full project
   // snapshot). We now write an INLINE .backup next to the new path so users can
-  // diff/merge their customizations without digging through .trellis/.backup-*/.
+  // diff/merge their customizations without digging through .polygon/.backup-*/.
   /** Install a mock that returns a specific migration choice for the per-file prompt
    *  and {proceed: true} for the top-level confirm. Resolves the flakiness of
    *  matching on `name` field in the dynamic import path. */
@@ -1078,7 +1082,7 @@ describe("update() integration", () => {
   // The [b] Backup-rename path in the confirm prompt promises "keeps a .backup
   // copy". Previously it was identical to [r] (both relied on the full project
   // snapshot). We now write an INLINE .backup next to the new path so users can
-  // diff/merge their customizations without digging through .trellis/.backup-*/.
+  // diff/merge their customizations without digging through .polygon/.backup-*/.
   it("#25 backup-rename leaves inline <new-path>.backup with original content", async () => {
     await setupProject();
     stageLegacy040Project();
@@ -1087,7 +1091,7 @@ describe("update() integration", () => {
     // User-modified content that differs from the 0.5 template (forces confirm)
     const legacyPath = path.join(
       tmpDir,
-      ".claude/commands/trellis/before-dev.md",
+      ".claude/commands/polygon/before-dev.md",
     );
     const userContent = "## My custom before-dev notes\nEdited by user.\n";
     fs.writeFileSync(legacyPath, userContent);
@@ -1102,7 +1106,7 @@ describe("update() integration", () => {
     //   - old-path is gone
     const newPath = path.join(
       tmpDir,
-      ".claude/skills/trellis-before-dev/SKILL.md",
+      ".claude/skills/polygon-before-dev/SKILL.md",
     );
     expect(fs.existsSync(newPath)).toBe(true);
     expect(fs.existsSync(newPath + ".backup")).toBe(true);
@@ -1117,7 +1121,7 @@ describe("update() integration", () => {
 
     const legacyPath = path.join(
       tmpDir,
-      ".claude/commands/trellis/before-dev.md",
+      ".claude/commands/polygon/before-dev.md",
     );
     fs.writeFileSync(legacyPath, "## user edits\n");
 
@@ -1127,10 +1131,10 @@ describe("update() integration", () => {
 
     const newPath = path.join(
       tmpDir,
-      ".claude/skills/trellis-before-dev/SKILL.md",
+      ".claude/skills/polygon-before-dev/SKILL.md",
     );
     expect(fs.existsSync(newPath)).toBe(true);
-    // No inline .backup — the full-project snapshot under .trellis/.backup-*
+    // No inline .backup — the full-project snapshot under .polygon/.backup-*
     // is the single source of recovery for this mode.
     expect(fs.existsSync(newPath + ".backup")).toBe(false);
   });
@@ -1182,7 +1186,7 @@ describe("update() integration", () => {
       "#### 2.1 Implement `[required · repeatable]`\n\n" +
       "[Codex]\nSpawn the implement sub-agent:\n[/Codex]\n\n" +
       "[Kilo, Antigravity, Windsurf]\n" +
-      "1. Load the `trellis-before-dev` skill to read project guidelines\n" +
+      "1. Load the `polygon-before-dev` skill to read project guidelines\n" +
       "[/Kilo, Antigravity, Windsurf]\n";
 
     fs.writeFileSync(workflowPath, staleWorkflow, "utf-8");
@@ -1214,5 +1218,136 @@ describe("update() integration", () => {
     expect(readHashesV2(hashFile)[PATHS.WORKFLOW_GUIDE_FILE]).toBe(
       computeHash(updated),
     );
+  });
+
+  // ---------------------------------------------------------------------------
+  // Legacy `.trellis/` → `.polygon/` rebrand migration (0.7.0)
+  // ---------------------------------------------------------------------------
+  describe("legacy .trellis → .polygon migration", () => {
+    const SENTINEL_TASK = "SENTINEL_TASK_do_not_lose_me";
+    const SENTINEL_SPEC = "SENTINEL_SPEC_keep_me";
+    const SENTINEL_JOURNAL = "SENTINEL_JOURNAL_preserve";
+
+    /** Build a pre-rebrand project rooted at `.trellis/` with user data + assets. */
+    function stageLegacyProject(): void {
+      // Workflow dir + version (older release so a real upgrade is simulated)
+      writeProjectFile(".trellis/.version", "0.6.0");
+      writeProjectFile(".trellis/config.yaml", "# legacy config\nmax_journal_lines: 2000\n");
+      writeProjectFile(".trellis/workflow.md", "# legacy workflow\n");
+      // User data sentinels
+      writeProjectFile(
+        ".trellis/tasks/06-08-demo/task.json",
+        JSON.stringify({ slug: "06-08-demo", note: SENTINEL_TASK }, null, 2),
+      );
+      writeProjectFile(".trellis/tasks/06-08-demo/prd.md", `# ${SENTINEL_TASK}\n`);
+      writeProjectFile(".trellis/spec/api/index.md", `# ${SENTINEL_SPEC}\n`);
+      writeProjectFile(
+        ".trellis/workspace/alice/journal-1.md",
+        `# Journal\n${SENTINEL_JOURNAL}\n`,
+      );
+      // Platform assets (trellis-* named, as an old install would have them)
+      const skillBody = "# polygon-check skill\n";
+      const agentBody = "# implement agent\n";
+      const cmdBody = "# continue command\n";
+      writeProjectFile(".claude/skills/trellis-check/SKILL.md", skillBody);
+      writeProjectFile(".claude/agents/trellis-implement.md", agentBody);
+      writeProjectFile(".claude/commands/trellis/continue.md", cmdBody);
+      // AGENTS.md with the pre-rebrand managed-block markers
+      writeProjectFile(
+        "AGENTS.md",
+        "# My project\n\nUser-authored intro.\n\n<!-- TRELLIS:START -->\nManaged.\n<!-- TRELLIS:END -->\n",
+      );
+      // Hash manifest (v2) with .trellis/-prefixed + trellis-* keys, matching content
+      writeHashesV2(projectFile(".trellis/.template-hashes.json"), {
+        ".trellis/workflow.md": computeHash("# legacy workflow\n"),
+        ".claude/skills/trellis-check/SKILL.md": computeHash(skillBody),
+        ".claude/agents/trellis-implement.md": computeHash(agentBody),
+        ".claude/commands/trellis/continue.md": computeHash(cmdBody),
+      });
+    }
+
+    it("renames .trellis/ to .polygon/, preserves user data, migrates assets", async () => {
+      stageLegacyProject();
+
+      await update({ migrate: true, force: true });
+
+      // Directory renamed
+      expect(fs.existsSync(projectFile(".polygon"))).toBe(true);
+      expect(fs.existsSync(projectFile(".trellis"))).toBe(false);
+
+      // User data intact, byte-for-byte
+      expect(readProjectFile(".polygon/tasks/06-08-demo/prd.md")).toContain(
+        SENTINEL_TASK,
+      );
+      expect(
+        JSON.parse(readProjectFile(".polygon/tasks/06-08-demo/task.json")).note,
+      ).toBe(SENTINEL_TASK);
+      expect(readProjectFile(".polygon/spec/api/index.md")).toContain(
+        SENTINEL_SPEC,
+      );
+      expect(
+        readProjectFile(".polygon/workspace/alice/journal-1.md"),
+      ).toContain(SENTINEL_JOURNAL);
+
+      // Version stamped to current
+      expect(readProjectFile(".polygon/.version")).toBe(VERSION);
+
+      // Hash manifest keys repointed — no .trellis/ left, .polygon/ present
+      const hashes = readHashesV2(
+        projectFile(".polygon/.template-hashes.json"),
+      );
+      const keys = Object.keys(hashes);
+      expect(keys.some((k) => k.startsWith(".trellis/"))).toBe(false);
+      expect(keys.some((k) => k.startsWith(".polygon/"))).toBe(true);
+      expect(keys.some((k) => k.includes("trellis-"))).toBe(false);
+
+      // Platform assets renamed trellis-* → polygon-*
+      expect(
+        fs.existsSync(projectFile(".claude/skills/polygon-check/SKILL.md")),
+      ).toBe(true);
+      expect(fs.existsSync(projectFile(".claude/skills/trellis-check"))).toBe(
+        false,
+      );
+      expect(
+        fs.existsSync(projectFile(".claude/agents/polygon-implement.md")),
+      ).toBe(true);
+      expect(fs.existsSync(projectFile(".claude/commands/polygon"))).toBe(true);
+      expect(fs.existsSync(projectFile(".claude/commands/trellis"))).toBe(
+        false,
+      );
+
+      // AGENTS.md managed block migrated to POLYGON markers, user content kept
+      const agentsMd = readProjectFile("AGENTS.md");
+      expect(agentsMd).toContain("User-authored intro.");
+      expect(agentsMd).toContain("<!-- POLYGON:START -->");
+      expect(agentsMd).not.toContain("<!-- TRELLIS:START -->");
+    });
+
+    it("is idempotent — a second update is a safe no-op for the rename", async () => {
+      stageLegacyProject();
+      await update({ migrate: true, force: true });
+      // Second run: .polygon/ already exists, .trellis/ gone
+      await update({ migrate: true, force: true });
+      expect(fs.existsSync(projectFile(".polygon"))).toBe(true);
+      expect(fs.existsSync(projectFile(".trellis"))).toBe(false);
+      expect(readProjectFile(".polygon/tasks/06-08-demo/prd.md")).toContain(
+        SENTINEL_TASK,
+      );
+    });
+
+    it("refuses the rename when both .trellis/ and .polygon/ exist (no data loss)", async () => {
+      stageLegacyProject();
+      // Simulate a half-finished manual move: a .polygon/ also present
+      writeProjectFile(".polygon/.version", "0.6.0");
+      writeProjectFile(".polygon/config.yaml", "# already here\n");
+
+      await update({ migrate: true, force: true });
+
+      // Both left intact — the pre-step must not clobber either
+      expect(fs.existsSync(projectFile(".trellis"))).toBe(true);
+      expect(readProjectFile(".trellis/tasks/06-08-demo/prd.md")).toContain(
+        SENTINEL_TASK,
+      );
+    });
   });
 });

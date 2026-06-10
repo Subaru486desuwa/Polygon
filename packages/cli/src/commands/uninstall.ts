@@ -1,20 +1,20 @@
 /**
- * `trellis uninstall` — remove every file written by `trellis init` / `update`
- * from the current project, plus the `.trellis/` directory itself.
+ * `polygon uninstall` — remove every file written by `polygon init` / `update`
+ * from the current project, plus the `.polygon/` directory itself.
  *
- * The single source of truth for "what trellis wrote" is
- * `.trellis/.template-hashes.json`. Files outside that manifest are never
+ * The single source of truth for "what polygon wrote" is
+ * `.polygon/.template-hashes.json`. Files outside that manifest are never
  * touched (e.g. user-added hooks under `.cursor/hooks/`).
  *
  * Manifest-listed files split into two groups:
  *   A. Opaque content files (`.py` / `.md` / `.ts` / etc.) — unlinked outright.
  *   B. Structured config files (settings.json / hooks.json / config.toml /
- *      package.json) — passed through a scrubber that strips just the trellis
+ *      package.json) — passed through a scrubber that strips just the polygon
  *      fields, leaving user-added neighbors intact. If the scrubber says the
  *      file is fully empty afterwards, we delete it.
  *
  * Whether the user has modified a manifest-listed file or not, it is removed
- * (per the PRD: "全删"). The `.trellis/` tree is removed unconditionally.
+ * (per the PRD: "全删"). The `.polygon/` tree is removed unconditionally.
  */
 
 import fs from "node:fs";
@@ -58,7 +58,7 @@ interface StructuredFileSpec {
   /**
    * Run the scrubber. `deletedPaths` is the full list of POSIX paths that this
    * uninstall is going to delete; hooks-json scrubbers use it to identify
-   * trellis-managed `command` strings.
+   * polygon-managed `command` strings.
    */
   scrub: (content: string, deletedPaths: readonly string[]) => ScrubResult;
 }
@@ -83,7 +83,7 @@ function buildStructuredFileSpecs(): Map<string, StructuredFileSpec> {
     ).map(
       (p): StructuredFileSpec => ({
         posixPath: p,
-        reason: "Strip trellis hooks; preserve user fields",
+        reason: "Strip polygon hooks; preserve user fields",
         scrub: (content, deletedPaths) =>
           scrubHooksJson(content, deletedPaths, "nested"),
       }),
@@ -92,7 +92,7 @@ function buildStructuredFileSpecs(): Map<string, StructuredFileSpec> {
     ...([".cursor/hooks.json", ".github/copilot/hooks.json"] as const).map(
       (p): StructuredFileSpec => ({
         posixPath: p,
-        reason: "Strip trellis hooks; preserve user fields",
+        reason: "Strip polygon hooks; preserve user fields",
         scrub: (content, deletedPaths) =>
           scrubHooksJson(content, deletedPaths, "flat"),
       }),
@@ -105,12 +105,12 @@ function buildStructuredFileSpecs(): Map<string, StructuredFileSpec> {
     {
       posixPath: ".pi/settings.json",
       reason:
-        "Strip trellis extension/skills/prompts entries; preserve user fields",
+        "Strip polygon extension/skills/prompts entries; preserve user fields",
       scrub: (content) => scrubPiSettings(content),
     },
     {
       posixPath: ".codex/config.toml",
-      reason: "Remove trellis project_doc_fallback_filenames and notes",
+      reason: "Remove polygon project_doc_fallback_filenames and notes",
       scrub: (content) => scrubCodexConfigToml(content),
     },
   ];
@@ -143,8 +143,8 @@ interface PlannedModification {
 interface UninstallPlan {
   deletions: PlannedDeletion[];
   modifications: PlannedModification[];
-  /** Whether `.trellis/` directory itself will be removed. */
-  removeTrellisDir: boolean;
+  /** Whether `.polygon/` directory itself will be removed. */
+  removePolygonDir: boolean;
 }
 
 /**
@@ -197,7 +197,7 @@ function buildPlan(cwd: string, hashes: Record<string, string>): UninstallPlan {
   return {
     deletions,
     modifications,
-    removeTrellisDir: true,
+    removePolygonDir: true,
   };
 }
 
@@ -205,7 +205,7 @@ function buildPlan(cwd: string, hashes: Record<string, string>): UninstallPlan {
  * Render the two-column uninstall plan to stdout.
  */
 function renderPlan(cwd: string, plan: UninstallPlan): void {
-  const trellisDir = path.join(cwd, DIR_NAMES.WORKFLOW);
+  const polygonDir = path.join(cwd, DIR_NAMES.WORKFLOW);
 
   console.log(chalk.bold("\nPolygon uninstall plan\n"));
 
@@ -219,7 +219,7 @@ function renderPlan(cwd: string, plan: UninstallPlan): void {
   for (const p of deletePaths) {
     console.log(`  ${chalk.red("-")} ${p}`);
   }
-  if (plan.removeTrellisDir && fs.existsSync(trellisDir)) {
+  if (plan.removePolygonDir && fs.existsSync(polygonDir)) {
     console.log(
       `  ${chalk.red("-")} ${DIR_NAMES.WORKFLOW}/  ${chalk.gray(
         "(entire directory, including tasks/runtime/config)",
@@ -273,7 +273,7 @@ async function promptContinue(): Promise<boolean> {
 }
 
 /**
- * Execute the plan: write modifications, unlink deletions, remove `.trellis/`,
+ * Execute the plan: write modifications, unlink deletions, remove `.polygon/`,
  * then prune empty managed directories.
  *
  * Returns counts for the summary.
@@ -307,12 +307,12 @@ function executePlan(
     deletedDirCandidates.add(path.posix.dirname(del.posixPath));
   }
 
-  // 3. Drop `.trellis/` entirely.
+  // 3. Drop `.polygon/` entirely.
   let deletedDirs = 0;
-  if (plan.removeTrellisDir) {
-    const trellisDir = path.join(cwd, DIR_NAMES.WORKFLOW);
-    if (fs.existsSync(trellisDir)) {
-      fs.rmSync(trellisDir, { recursive: true, force: true });
+  if (plan.removePolygonDir) {
+    const polygonDir = path.join(cwd, DIR_NAMES.WORKFLOW);
+    if (fs.existsSync(polygonDir)) {
+      fs.rmSync(polygonDir, { recursive: true, force: true });
       deletedDirs += 1;
     }
   }
@@ -330,7 +330,7 @@ function executePlan(
   // `.agents/skills`, …) that is now empty. We deliberately handle this here
   // — `cleanupEmptyDirs` refuses to touch managed root dirs because in normal
   // `update` flow they must persist. During uninstall, an empty platform root
-  // has no purpose. `.trellis` is already gone (step 3), so we skip it.
+  // has no purpose. `.polygon` is already gone (step 3), so we skip it.
   // Process deepest-first so that nested managed dirs (e.g. `.agents/skills`)
   // are removed before their parents (`.agents`).
   const sortedManagedDirs = [...ALL_MANAGED_DIRS]
@@ -380,26 +380,26 @@ export async function uninstall(options: UninstallOptions = {}): Promise<void> {
   }
 
   const cwd = process.cwd();
-  const trellisDir = path.join(cwd, DIR_NAMES.WORKFLOW);
+  const polygonDir = path.join(cwd, DIR_NAMES.WORKFLOW);
 
-  // Pre-check 1: must have a `.trellis/` directory.
-  if (!fs.existsSync(trellisDir)) {
+  // Pre-check 1: must have a `.polygon/` directory.
+  if (!fs.existsSync(polygonDir)) {
     console.log(
       chalk.gray(
-        "Polygon is not installed in this project (no .trellis/ directory found).",
+        "Polygon is not installed in this project (no .polygon/ directory found).",
       ),
     );
     return;
   }
 
   // Pre-check 2: must have a manifest. Without it we cannot determine which
-  // platform files are trellis-owned vs user-owned.
+  // platform files are polygon-owned vs user-owned.
   const hashes = loadHashes(cwd);
   if (Object.keys(hashes).length === 0) {
     console.error(
       chalk.red(
         "Polygon directory found but manifest is missing — cannot determine which platform files to remove. " +
-          "You can manually delete .trellis/ if needed.",
+          "You can manually delete .polygon/ if needed.",
       ),
     );
     process.exit(1);
@@ -413,7 +413,7 @@ export async function uninstall(options: UninstallOptions = {}): Promise<void> {
   // Dry-run: still compute the pruned hashes (so the plan reflects post-prune
   // reality) but pass `persist: false` so no disk write happens. The actual
   // disk write defers to executePlan time, where we'd be rewriting the
-  // manifest only to delete the whole .trellis/ dir anyway — but the
+  // manifest only to delete the whole .polygon/ dir anyway — but the
   // computation must remain to keep the rendered plan honest.
   const configuredPlatforms = getConfiguredPlatforms(cwd);
   const { pruned, hashes: prunedHashes } = pruneOrphanManifestKeys(
@@ -427,7 +427,7 @@ export async function uninstall(options: UninstallOptions = {}): Promise<void> {
     // without giving them an actionable signal.
     console.log(
       chalk.gray(
-        `   Pruned ${pruned.length} orphan manifest entries (user-owned files trellis did not write).`,
+        `   Pruned ${pruned.length} orphan manifest entries (user-owned files polygon did not write).`,
       ),
     );
   }
@@ -443,7 +443,7 @@ export async function uninstall(options: UninstallOptions = {}): Promise<void> {
   if (!options.yes) {
     // Make sure stdin is in a usable state for the prompt; in scripted
     // environments that closed stdin, inquirer would otherwise raise. We
-    // honor the same UX as `trellis update` (which also fails closed in
+    // honor the same UX as `polygon update` (which also fails closed in
     // that case).
     if (!process.stdin.isTTY) {
       console.error(
@@ -469,7 +469,7 @@ export async function uninstall(options: UninstallOptions = {}): Promise<void> {
   console.log();
   console.log(
     chalk.green(
-      `Uninstalled trellis: ${summary.deletedFiles} files deleted, ` +
+      `Uninstalled polygon: ${summary.deletedFiles} files deleted, ` +
         `${summary.modifiedFiles} files modified, ` +
         `${summary.deletedDirs} directories removed.`,
     ),

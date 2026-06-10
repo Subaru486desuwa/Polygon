@@ -1,10 +1,10 @@
 /**
  * Integration tests for the init + uninstall data-loss fix
- * (.trellis/tasks/05-13-uninstall-overdelete-manifest-leak).
+ * (.polygon/tasks/05-13-uninstall-overdelete-manifest-leak).
  *
  * Reproduces GitHub Issue #221 (.codex/sessions/ deletion) and PR #271 review
  * comment (pre-existing AGENTS.md deletion). Verifies:
- *   - init's manifest only contains paths trellis actually wrote
+ *   - init's manifest only contains paths polygon actually wrote
  *   - uninstall does not touch user-owned files under platform-managed dirs
  *   - homedir guard refuses init/uninstall in $HOME
  *   - poisoned-manifest self-heal works on both update and uninstall entry
@@ -17,7 +17,7 @@ import path from "node:path";
 import inquirer from "inquirer";
 
 vi.mock("figlet", () => ({
-  default: { textSync: vi.fn(() => "TRELLIS") },
+  default: { textSync: vi.fn(() => "POLYGON") },
 }));
 
 vi.mock("inquirer", () => ({
@@ -44,7 +44,7 @@ describe("init + uninstall: manifest accuracy + homedir guard", () => {
   let tmpDir: string;
 
   beforeEach(() => {
-    tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), "trellis-overdelete-"));
+    tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), "polygon-overdelete-"));
     vi.spyOn(process, "cwd").mockReturnValue(tmpDir);
     vi.spyOn(console, "log").mockImplementation(noop);
     vi.spyOn(console, "error").mockImplementation(noop);
@@ -53,20 +53,20 @@ describe("init + uninstall: manifest accuracy + homedir guard", () => {
       configurable: true,
       value: true,
     });
-    delete process.env.TRELLIS_ALLOW_HOMEDIR;
+    delete process.env.POLYGON_ALLOW_HOMEDIR;
   });
 
   afterEach(() => {
     vi.restoreAllMocks();
     fs.rmSync(tmpDir, { recursive: true, force: true });
-    delete process.env.TRELLIS_ALLOW_HOMEDIR;
+    delete process.env.POLYGON_ALLOW_HOMEDIR;
   });
 
   // ----- R1: manifest accuracy after init -----
 
   it("#R1.1 init does not hash pre-existing .codex/sessions/ user data (issue #221)", async () => {
     // Repro from the issue body. User has codex chat history before they ever
-    // ran trellis.
+    // ran polygon.
     const userSession = path.join(
       tmpDir,
       ".codex",
@@ -81,7 +81,7 @@ describe("init + uninstall: manifest accuracy + homedir guard", () => {
 
     const hashes = loadHashes(tmpDir);
     expect(hashes).not.toHaveProperty(".codex/sessions/2026/x.jsonl");
-    // Sanity: trellis's own codex files ARE tracked.
+    // Sanity: polygon's own codex files ARE tracked.
     const trackedCodex = Object.keys(hashes).filter((k) =>
       k.startsWith(".codex/"),
     );
@@ -193,7 +193,7 @@ describe("init + uninstall: manifest accuracy + homedir guard", () => {
 
   it("#R3.2 uninstall self-heals + preserves user file even without prior update", async () => {
     // Most catastrophic path: user has poisoned manifest from old install
-    // and runs `trellis uninstall` directly. Prune must fire before plan
+    // and runs `polygon uninstall` directly. Prune must fire before plan
     // build, otherwise the user file gets unlinked.
     await init({ yes: true, claude: true, force: true });
 
@@ -242,17 +242,17 @@ describe("init + uninstall: manifest accuracy + homedir guard", () => {
     await init({ yes: true, claude: true, force: true });
 
     // We can't easily fabricate a real migration entry in this test, but we
-    // CAN assert the prune behavior preserves .trellis/ entries which is the
+    // CAN assert the prune behavior preserves .polygon/ entries which is the
     // most common "not-in-collectTemplates-but-important" case. (Migration
     // paths share the same preservation logic in pruneOrphanManifestKeys.)
     const hashes = loadHashes(tmpDir);
-    hashes[".trellis/workflow.md"] = "ok";
+    hashes[".polygon/workflow.md"] = "ok";
     saveHashes(tmpDir, hashes);
 
     await update({});
 
-    // .trellis/* entries are kept.
-    expect(loadHashes(tmpDir)).toHaveProperty(".trellis/workflow.md");
+    // .polygon/* entries are kept.
+    expect(loadHashes(tmpDir)).toHaveProperty(".polygon/workflow.md");
   });
 
   // ----- R2: homedir guard -----
@@ -299,15 +299,15 @@ describe("init + uninstall: manifest accuracy + homedir guard", () => {
       });
       expect(exitSpy).toHaveBeenCalledWith(1);
 
-      // No .trellis dir was created.
-      expect(fs.existsSync(path.join(fakeHome, ".trellis"))).toBe(false);
+      // No .polygon dir was created.
+      expect(fs.existsSync(path.join(fakeHome, ".polygon"))).toBe(false);
     } finally {
       fs.rmSync(fakeHome, { recursive: true, force: true });
     }
   });
 
   it("#R2.2 uninstall refuses to run when cwd === $HOME", async () => {
-    // Set up a valid trellis project, then pretend its cwd is the homedir.
+    // Set up a valid polygon project, then pretend its cwd is the homedir.
     await init({ yes: true, claude: true, force: true });
 
     const exitSpy = vi
@@ -324,20 +324,20 @@ describe("init + uninstall: manifest accuracy + homedir guard", () => {
     expect(exitSpy).toHaveBeenCalledWith(1);
 
     // Project is unchanged.
-    expect(fs.existsSync(path.join(tmpDir, ".trellis"))).toBe(true);
+    expect(fs.existsSync(path.join(tmpDir, ".polygon"))).toBe(true);
   });
 
-  it("#R2.3 TRELLIS_ALLOW_HOMEDIR=1 bypasses the guard for init", async () => {
+  it("#R2.3 POLYGON_ALLOW_HOMEDIR=1 bypasses the guard for init", async () => {
     const fakeHome = fs.mkdtempSync(path.join(os.tmpdir(), "fake-home-"));
     try {
       vi.spyOn(process, "cwd").mockReturnValue(fakeHome);
-      process.env.TRELLIS_ALLOW_HOMEDIR = "1";
+      process.env.POLYGON_ALLOW_HOMEDIR = "1";
 
       await withFakeHome(fakeHome, async () => {
         await init({ yes: true, claude: true, force: true });
       });
 
-      expect(fs.existsSync(path.join(fakeHome, ".trellis"))).toBe(true);
+      expect(fs.existsSync(path.join(fakeHome, ".polygon"))).toBe(true);
     } finally {
       fs.rmSync(fakeHome, { recursive: true, force: true });
     }
@@ -355,7 +355,7 @@ describe("init + uninstall: manifest accuracy + homedir guard", () => {
         await init({ yes: true, claude: true, force: true });
       });
 
-      expect(fs.existsSync(path.join(subDir, ".trellis"))).toBe(true);
+      expect(fs.existsSync(path.join(subDir, ".polygon"))).toBe(true);
     } finally {
       fs.rmSync(fakeHome, { recursive: true, force: true });
     }

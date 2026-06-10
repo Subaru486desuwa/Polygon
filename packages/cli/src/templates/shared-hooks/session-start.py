@@ -93,11 +93,11 @@ if sys.platform.startswith("win"):
 
 def should_skip_injection() -> bool:
     """Check if any platform's non-interactive flag is set, or if Polygon
-    hooks are explicitly disabled via TRELLIS_HOOKS=0 / TRELLIS_DISABLE_HOOKS=1.
+    hooks are explicitly disabled via POLYGON_HOOKS=0 / POLYGON_DISABLE_HOOKS=1.
     """
-    if os.environ.get("TRELLIS_HOOKS") == "0":
+    if os.environ.get("POLYGON_HOOKS") == "0":
         return True
-    if os.environ.get("TRELLIS_DISABLE_HOOKS") == "1":
+    if os.environ.get("POLYGON_DISABLE_HOOKS") == "1":
         return True
     non_interactive_vars = [
         "CLAUDE_NON_INTERACTIVE",
@@ -155,8 +155,8 @@ def _detect_platform(input_data: dict) -> str | None:
     return None
 
 
-def _resolve_context_key(trellis_dir: Path, input_data: dict) -> str | None:
-    scripts_dir = trellis_dir / "scripts"
+def _resolve_context_key(polygon_dir: Path, input_data: dict) -> str | None:
+    scripts_dir = polygon_dir / "scripts"
     if str(scripts_dir) not in sys.path:
         sys.path.insert(0, str(scripts_dir))
     from common.active_task import resolve_context_key  # type: ignore[import-not-found]
@@ -179,19 +179,19 @@ def _persist_context_key_for_bash(context_key: str | None) -> None:
         return
     try:
         with open(env_file, "a", encoding="utf-8") as handle:
-            handle.write(f"export TRELLIS_CONTEXT_ID={shlex.quote(context_key)}\n")
+            handle.write(f"export POLYGON_CONTEXT_ID={shlex.quote(context_key)}\n")
     except OSError:
         pass
 
 
-def _resolve_active_task(trellis_dir: Path, input_data: dict):
-    scripts_dir = trellis_dir / "scripts"
+def _resolve_active_task(polygon_dir: Path, input_data: dict):
+    scripts_dir = polygon_dir / "scripts"
     if str(scripts_dir) not in sys.path:
         sys.path.insert(0, str(scripts_dir))
     from common.active_task import resolve_active_task  # type: ignore[import-not-found]
 
     return resolve_active_task(
-        trellis_dir.parent,
+        polygon_dir.parent,
         input_data,
         platform=_detect_platform(input_data),
     )
@@ -204,12 +204,12 @@ def run_script(script_path: Path, context_key: str | None = None) -> str:
             env = os.environ.copy()
             env["PYTHONIOENCODING"] = "utf-8"
             if context_key:
-                env["TRELLIS_CONTEXT_ID"] = context_key
+                env["POLYGON_CONTEXT_ID"] = context_key
             cmd = [sys.executable, "-W", "ignore", str(script_path)]
         else:
             env = os.environ.copy()
             if context_key:
-                env["TRELLIS_CONTEXT_ID"] = context_key
+                env["POLYGON_CONTEXT_ID"] = context_key
             cmd = [str(script_path)]
 
         result = subprocess.run(
@@ -241,22 +241,22 @@ def _normalize_task_ref(task_ref: str) -> str:
         normalized = normalized[2:]
 
     if normalized.startswith("tasks/"):
-        return f".trellis/{normalized}"
+        return f".polygon/{normalized}"
 
     return normalized
 
 
-def _resolve_task_dir(trellis_dir: Path, task_ref: str) -> Path:
+def _resolve_task_dir(polygon_dir: Path, task_ref: str) -> Path:
     normalized = _normalize_task_ref(task_ref)
     path_obj = Path(normalized)
     if path_obj.is_absolute():
         return path_obj
-    if normalized.startswith(".trellis/"):
-        return trellis_dir.parent / path_obj
-    return trellis_dir / "tasks" / path_obj
+    if normalized.startswith(".polygon/"):
+        return polygon_dir.parent / path_obj
+    return polygon_dir / "tasks" / path_obj
 
 
-def _get_task_status(trellis_dir: Path, input_data: dict) -> str:
+def _get_task_status(polygon_dir: Path, input_data: dict) -> str:
     """Check current task status and return structured status string with explicit next action.
 
     Returns a block with three fields:
@@ -264,7 +264,7 @@ def _get_task_status(trellis_dir: Path, input_data: dict) -> str:
     - Task: task identifier (when applicable)
     - Next-Action: explicit skill/command/tool call the AI should invoke
     """
-    active = _resolve_active_task(trellis_dir, input_data)
+    active = _resolve_active_task(polygon_dir, input_data)
 
     # Case 1: No active task — waiting for user to describe intent
     if not active.task_path:
@@ -272,18 +272,18 @@ def _get_task_status(trellis_dir: Path, input_data: dict) -> str:
             "Status: NO ACTIVE TASK\n"
             f"Source: {active.source}\n"
             "Next-Action: judge the request's real size — multi-turn implementation work worth a "
-            "persistent record gets `python3 ./.trellis/scripts/task.py create` + the "
-            "`trellis-brainstorm` skill; questions and quick fixes are handled directly, no ceremony."
+            "persistent record gets `python3 ./.polygon/scripts/task.py create` + the "
+            "`polygon-brainstorm` skill; questions and quick fixes are handled directly, no ceremony."
         )
 
     # Case 2: Stale pointer — task dir was deleted
     task_ref = active.task_path
-    task_dir = _resolve_task_dir(trellis_dir, task_ref)
+    task_dir = _resolve_task_dir(polygon_dir, task_ref)
     if active.stale or not task_dir.is_dir():
         return (
             f"Status: STALE POINTER\nTask: {task_ref}\n"
             f"Source: {active.source}\n"
-            f"Next-Action: Run `python3 ./.trellis/scripts/task.py finish` to clear the stale pointer, "
+            f"Next-Action: Run `python3 ./.polygon/scripts/task.py finish` to clear the stale pointer, "
             "then ask the user what to work on next."
         )
 
@@ -304,8 +304,8 @@ def _get_task_status(trellis_dir: Path, input_data: dict) -> str:
         return (
             f"Status: COMPLETED\nTask: {task_title}\n"
             f"Source: {active.source}\n"
-            f"Next-Action: Load skill `trellis-update-spec` to capture learnings, "
-            f"then archive with `python3 ./.trellis/scripts/task.py archive {task_dir.name}`."
+            f"Next-Action: Load skill `polygon-update-spec` to capture learnings, "
+            f"then archive with `python3 ./.polygon/scripts/task.py archive {task_dir.name}`."
         )
 
     has_prd = (task_dir / "prd.md").is_file()
@@ -315,7 +315,7 @@ def _get_task_status(trellis_dir: Path, input_data: dict) -> str:
         return (
             f"Status: PLANNING\nTask: {task_title}\n"
             f"Source: {active.source}\n"
-            "Next-Action: load the `trellis-brainstorm` skill, iterate prd.md with the user; "
+            "Next-Action: load the `polygon-brainstorm` skill, iterate prd.md with the user; "
             "persist research to `{task_dir}/research/*.md` (files survive compaction, chat doesn't)."
         )
 
@@ -324,18 +324,18 @@ def _get_task_status(trellis_dir: Path, input_data: dict) -> str:
         f"Status: READY\nTask: {task_title}\n"
         f"Source: {active.source}\n"
         "Next-Action: continue implementation in the main session (read prd.md + research/ first); "
-        "dispatch `trellis-implement` / `trellis-check` sub-agents only when they genuinely help. "
+        "dispatch `polygon-implement` / `polygon-check` sub-agents only when they genuinely help. "
         "Verify with lint / type-check / tests before reporting done."
     )
 
 
-def _load_trellis_config(trellis_dir: Path, input_data: dict) -> tuple:
+def _load_polygon_config(polygon_dir: Path, input_data: dict) -> tuple:
     """Load Polygon config for session-start decisions.
 
     Returns:
         (is_mono, packages_dict, spec_scope, task_pkg, default_pkg)
     """
-    scripts_dir = trellis_dir / "scripts"
+    scripts_dir = polygon_dir / "scripts"
     if str(scripts_dir) not in sys.path:
         sys.path.insert(0, str(scripts_dir))
 
@@ -343,7 +343,7 @@ def _load_trellis_config(trellis_dir: Path, input_data: dict) -> tuple:
         from common.config import get_default_package, get_packages, get_spec_scope, is_monorepo  # type: ignore[import-not-found]
         from common.paths import get_current_task  # type: ignore[import-not-found]
 
-        repo_root = trellis_dir.parent
+        repo_root = polygon_dir.parent
         is_mono = is_monorepo(repo_root)
         packages = get_packages(repo_root) or {}
         scope = get_spec_scope(repo_root)
@@ -373,7 +373,7 @@ def _load_trellis_config(trellis_dir: Path, input_data: dict) -> tuple:
         return False, {}, None, None, None
 
 
-def _check_legacy_spec(trellis_dir: Path, is_mono: bool, packages: dict) -> str | None:
+def _check_legacy_spec(polygon_dir: Path, is_mono: bool, packages: dict) -> str | None:
     """Check for legacy spec directory structure in monorepo.
 
     Returns warning message if legacy structure detected, None otherwise.
@@ -381,7 +381,7 @@ def _check_legacy_spec(trellis_dir: Path, is_mono: bool, packages: dict) -> str 
     if not is_mono or not packages:
         return None
 
-    spec_dir = trellis_dir / "spec"
+    spec_dir = polygon_dir / "spec"
     if not spec_dir.is_dir():
         return None
 
@@ -491,9 +491,9 @@ def _build_workflow_overview(workflow_path: Path) -> str:
     return (
         "Phase 1: Plan    -> brainstorm + research -> prd.md  (task.py create, then task.py start)\n"
         "Phase 2: Execute -> implement in the main session by default; lint / type-check / tests\n"
-        "Phase 3: Finish  -> capture learnings -> commit -> /trellis:finish-work\n"
-        "Full guide: .trellis/workflow.md (read on demand)\n"
-        "Step detail: python3 ./.trellis/scripts/get_context.py --mode phase --step <X.Y>"
+        "Phase 3: Finish  -> capture learnings -> commit -> /polygon:finish-work\n"
+        "Full guide: .polygon/workflow.md (read on demand)\n"
+        "Step detail: python3 ./.polygon/scripts/get_context.py --mode phase --step <X.Y>"
     )
 
 
@@ -528,13 +528,13 @@ def main():
     if project_dir is None:
         project_dir = Path(_normalize_windows_shell_path(hook_input.get("cwd", "."))).resolve()
 
-    trellis_dir = project_dir / ".trellis"
-    context_key = _resolve_context_key(trellis_dir, hook_input)
+    polygon_dir = project_dir / ".polygon"
+    context_key = _resolve_context_key(polygon_dir, hook_input)
     _persist_context_key_for_bash(context_key)
 
     # Load config for scope filtering and legacy detection
-    is_mono, packages, scope_config, task_pkg, default_pkg = _load_trellis_config(
-        trellis_dir,
+    is_mono, packages, scope_config, task_pkg, default_pkg = _load_polygon_config(
+        polygon_dir,
         hook_input,
     )
     allowed_pkgs = _resolve_spec_scope(is_mono, packages, scope_config, task_pkg, default_pkg)
@@ -549,17 +549,17 @@ Read and follow all instructions below carefully.
 """)
 
     # Legacy migration warning
-    legacy_warning = _check_legacy_spec(trellis_dir, is_mono, packages)
+    legacy_warning = _check_legacy_spec(polygon_dir, is_mono, packages)
     if legacy_warning:
         output.write(f"<migration-warning>\n{legacy_warning}\n</migration-warning>\n\n")
 
     output.write("<current-state>\n")
-    context_script = trellis_dir / "scripts" / "get_context.py"
+    context_script = polygon_dir / "scripts" / "get_context.py"
     output.write(run_script(context_script, context_key))
     output.write("\n</current-state>\n\n")
 
     output.write("<workflow>\n")
-    output.write(_build_workflow_overview(trellis_dir / "workflow.md"))
+    output.write(_build_workflow_overview(polygon_dir / "workflow.md"))
     output.write("\n</workflow>\n\n")
 
     output.write("<guidelines>\n")
@@ -574,7 +574,7 @@ Read and follow all instructions below carefully.
     # Spec indexes — paths only (read on demand; sub-agents get their
     # specific specs via jsonl injection)
     paths: list[str] = []
-    spec_dir = trellis_dir / "spec"
+    spec_dir = polygon_dir / "spec"
     if spec_dir.is_dir():
         for sub in sorted(spec_dir.iterdir()):
             if not sub.is_dir() or sub.name.startswith("."):
@@ -583,7 +583,7 @@ Read and follow all instructions below carefully.
             index_file = sub / "index.md"
             if index_file.is_file():
                 # Flat spec dir (single-repo layer like spec/backend/)
-                paths.append(f".trellis/spec/{sub.name}/index.md")
+                paths.append(f".polygon/spec/{sub.name}/index.md")
             else:
                 # Nested package dirs (monorepo: spec/<pkg>/<layer>/index.md)
                 # Apply scope filter
@@ -595,7 +595,7 @@ Read and follow all instructions below carefully.
                     nested_index = nested / "index.md"
                     if nested_index.is_file():
                         paths.append(
-                            f".trellis/spec/{sub.name}/{nested.name}/index.md"
+                            f".polygon/spec/{sub.name}/{nested.name}/index.md"
                         )
 
     if paths:
@@ -607,7 +607,7 @@ Read and follow all instructions below carefully.
     output.write("</guidelines>\n\n")
 
     # Check task status and inject structured tag
-    task_status = _get_task_status(trellis_dir, hook_input)
+    task_status = _get_task_status(polygon_dir, hook_input)
     output.write(f"<task-status>\n{task_status}\n</task-status>\n\n")
 
     output.write("""<ready>

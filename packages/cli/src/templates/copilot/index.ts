@@ -7,7 +7,7 @@
  *   copilot/
  *   ├── prompts/         # Slash-command prompts → .github/prompts/*.prompt.md
  *   ├── hooks/           # Hook scripts → .github/copilot/hooks/
- *   └── hooks.json       # Hooks config → .github/hooks/trellis.json
+ *   └── hooks.json       # Hooks config → .github/hooks/polygon.json
  */
 
 import { readdirSync, readFileSync } from "node:fs";

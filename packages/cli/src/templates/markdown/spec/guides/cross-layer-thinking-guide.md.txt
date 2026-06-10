@@ -91,10 +91,10 @@ In Polygon, command templates (e.g., `record-session.md`) exist in **multiple pl
 
 ### Checklist: After Modifying Any Command Template
 
-- [ ] Find all platforms with the same command: `find src/templates/*/commands/trellis/ -name "<command>.*"`
+- [ ] Find all platforms with the same command: `find src/templates/*/commands/polygon/ -name "<command>.*"`
 - [ ] Update all platform copies (Markdown `.md` and TOML `.toml`)
 - [ ] For Gemini TOML: adapt line continuations (`\\` vs `\`) and triple-quoted strings
-- [ ] Run `/trellis:check-cross-layer` to verify nothing was missed
+- [ ] Run `/polygon:check-cross-layer` to verify nothing was missed
 
 **Real-world example**: Updated `record-session.md` in Claude to use `--mode record`, but forgot iFlow, Kilo, OpenCode, and Gemini — caught by cross-layer check.
 
@@ -103,7 +103,7 @@ In Polygon, command templates (e.g., `record-session.md`) exist in **multiple pl
 ## Generated Runtime Template Upgrade Consistency
 
 Some generated files are both documentation and runtime input. In Polygon,
-`.trellis/workflow.md` is parsed by `get_context.py`, `workflow_phase.py`,
+`.polygon/workflow.md` is parsed by `get_context.py`, `workflow_phase.py`,
 SessionStart filters, and per-turn hooks. Template changes must be validated
 against both fresh init and upgrade paths.
 
@@ -114,7 +114,7 @@ against both fresh init and upgrade paths.
 - [ ] Check whether relevant syntax lives outside obvious managed regions
   such as tag blocks
 - [ ] Verify fresh `init` output and a versioned `update` scenario that writes
-  the older `.trellis/.version`
+  the older `.polygon/.version`
 - [ ] Add an upgrade regression using an older pristine template fixture, then
   assert the installed file reaches the current packaged shape
 - [ ] Update the backend spec that owns the runtime contract
@@ -122,7 +122,7 @@ against both fresh init and upgrade paths.
 **Real-world example**: Codex inline mode changed workflow platform markers from
 `[Codex]` / `[Kilo, Antigravity, Windsurf]` to `[codex-sub-agent]` /
 `[codex-inline, Kilo, Antigravity, Windsurf]`. Fresh init was correct, but
-`trellis update` only merged `[workflow-state:*]` blocks and preserved stale
+`polygon update` only merged `[workflow-state:*]` blocks and preserved stale
 markers outside those blocks. Result: upgraded projects got new hook scripts
 but old workflow routing, so `get_context.py --mode phase --platform codex`
 could return empty Phase 2.1 detail.

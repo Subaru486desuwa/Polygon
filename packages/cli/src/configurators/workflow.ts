@@ -1,14 +1,14 @@
 import path from "node:path";
 
 import { DIR_NAMES, PATHS } from "../constants/paths.js";
-import { copyTrellisDir } from "../templates/extract.js";
+import { copyPolygonDir } from "../templates/extract.js";
 
-// Import trellis templates (generic, not project-specific)
+// Import polygon templates (generic, not project-specific)
 import {
   workflowMdTemplate,
   configYamlTemplate,
   gitignoreTemplate,
-} from "../templates/trellis/index.js";
+} from "../templates/polygon/index.js";
 
 // Import markdown templates
 import {
@@ -64,7 +64,7 @@ export interface WorkflowOptions {
 /**
  * Create workflow structure based on project type
  *
- * This function creates the .trellis/ directory structure by:
+ * This function creates the .polygon/ directory structure by:
  * 1. Copying scripts/ directory directly (dogfooding)
  * 2. Copying workflow.md and .gitignore (dogfooding)
  * 3. Creating workspace/ with index.md
@@ -83,11 +83,11 @@ export async function createWorkflowStructure(
   const packages = options?.packages;
   const remoteSpecPackages = options?.remoteSpecPackages;
 
-  // Create base .trellis directory
+  // Create base .polygon directory
   ensureDir(path.join(cwd, DIR_NAMES.WORKFLOW));
 
   // Copy scripts/ directory from templates
-  await copyTrellisDir("scripts", path.join(cwd, PATHS.SCRIPTS), {
+  await copyPolygonDir("scripts", path.join(cwd, PATHS.SCRIPTS), {
     executable: true,
   });
 

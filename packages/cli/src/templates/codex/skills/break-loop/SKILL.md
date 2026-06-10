@@ -1,6 +1,6 @@
 ---
 name: break-loop
-description: "Deep post-fix bug analysis across five dimensions: root cause categorization, fix failure analysis, prevention mechanisms, systematic expansion, and knowledge capture. Updates .trellis/spec/ guides with lessons learned to prevent recurring bugs. Use when a debugging session completes, after fixing a tricky bug, when the same class of bug keeps recurring, or when you want to capture debugging insights into project documentation."
+description: "Deep post-fix bug analysis across five dimensions: root cause categorization, fix failure analysis, prevention mechanisms, systematic expansion, and knowledge capture. Updates .polygon/spec/ guides with lessons learned to prevent recurring bugs. Use when a debugging session completes, after fixing a tricky bug, when the same class of bug keeps recurring, or when you want to capture debugging insights into project documentation."
 ---
 
 # Break the Loop — Post-Fix Analysis
@@ -13,4 +13,4 @@ Work through five questions (prose is fine; no template to fill):
 2. **Why earlier fixes failed** (if they did) — surface fix of a symptom? incomplete scope? tool limitation (grep missed it, types too loose)? wrong mental model (kept looking in one layer)?
 3. **Prevention mechanism** — prefer structural over procedural: make the error impossible (types, architecture) > catch at compile/test time > document a checklist item. Pick the strongest one that's proportionate.
 4. **Systematic expansion** — where else does this same pattern exist right now? Check before closing.
-5. **Capture** — actually update `.trellis/spec/` (the `update-spec` skill has the format). A list of TODOs is not capture; the edited spec file is.
+5. **Capture** — actually update `.polygon/spec/` (the `update-spec` skill has the format). A list of TODOs is not capture; the edited spec file is.

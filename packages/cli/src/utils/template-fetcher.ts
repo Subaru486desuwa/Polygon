@@ -22,7 +22,7 @@ const TEMPLATE_REPO = "gh:mindfold-ai/marketplace";
 
 /** Map template type to installation path */
 const INSTALL_PATHS: Record<string, string> = {
-  spec: ".trellis/spec",
+  spec: ".polygon/spec",
   skill: ".agents/skills",
   command: ".claude/commands",
   full: ".", // Entire project root
@@ -722,7 +722,7 @@ async function cloneRegistryRef(
   registry: RegistrySource,
 ): Promise<GitCheckout> {
   const dir = await fs.promises.mkdtemp(
-    path.join(os.tmpdir(), "trellis-registry-"),
+    path.join(os.tmpdir(), "polygon-registry-"),
   );
   try {
     try {
@@ -911,7 +911,7 @@ export async function downloadWithStrategy(
 
   // append: Download to temp dir, then merge missing files
   if (strategy === "append" && exists) {
-    const tempDir = path.join(os.tmpdir(), `trellis-template-${Date.now()}`);
+    const tempDir = path.join(os.tmpdir(), `polygon-template-${Date.now()}`);
     try {
       await withTimeout(
         downloadTemplate(gigetSource, {
@@ -1324,14 +1324,14 @@ export function collectDirectoryFiles(
 
 /**
  * Download a direct registry spec into a temporary directory and return its
- * files as update-template entries under `.trellis/spec/**`.
+ * files as update-template entries under `.polygon/spec/**`.
  */
 export async function fetchRegistrySpecTemplates(
   registry: RegistrySource,
   registryBackend?: RegistryBackend,
 ): Promise<{ success: boolean; message?: string; files: Map<string, string> }> {
   const tempRoot = await fs.promises.mkdtemp(
-    path.join(os.tmpdir(), "trellis-registry-spec-"),
+    path.join(os.tmpdir(), "polygon-registry-spec-"),
   );
   try {
     const result = await downloadRegistryDirect(
@@ -1347,8 +1347,8 @@ export async function fetchRegistrySpecTemplates(
     return {
       success: true,
       files: collectDirectoryFiles(
-        path.join(tempRoot, ".trellis", "spec"),
-        ".trellis/spec",
+        path.join(tempRoot, ".polygon", "spec"),
+        ".polygon/spec",
       ),
     };
   } finally {

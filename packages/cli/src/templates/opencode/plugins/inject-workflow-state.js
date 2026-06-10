@@ -18,14 +18,14 @@
  * should surface on every turn so long conversations don't drift.
  *
  * Silently skips when:
- *   - No .trellis/ directory
+ *   - No .polygon/ directory
  *   - No active task in the session runtime context
  *   - task.json malformed or missing status
  */
 
 import { existsSync, readFileSync } from "fs"
 import { join } from "path"
-import { TrellisContext, debugLog, isTrellisSubagent } from "../lib/trellis-context.js"
+import { PolygonContext, debugLog, isPolygonSubagent } from "../lib/polygon-context.js"
 
 // Supports STATUS values with letters, digits, underscores, hyphens
 // (so "in-review" / "blocked-by-team" work alongside "in_progress").
@@ -41,7 +41,7 @@ const TAG_RE = /\[workflow-state:([A-Za-z0-9_-]+)\]\s*\n([\s\S]*?)\n\s*\[\/workf
  * rather than the plugin silently masking it.
  */
 function loadBreadcrumbs(directory) {
-  const workflowPath = join(directory, ".trellis", "workflow.md")
+  const workflowPath = join(directory, ".polygon", "workflow.md")
   if (!existsSync(workflowPath)) return {}
   let content
   try {
@@ -59,16 +59,16 @@ function loadBreadcrumbs(directory) {
 }
 
 /**
- * Minimal .trellis/config.yaml reader for the ultracode flag.
+ * Minimal .polygon/config.yaml reader for the ultracode flag.
  *
- * The repo's YAML is hand-parsed by trellis_config.py without boolean coercion,
+ * The repo's YAML is hand-parsed by polygon_config.py without boolean coercion,
  * so `enabled: true` may be stored as the string "true". We accept the string
  * forms ("true"/"yes"/"on"/"1") as well as a bare boolean. Anything else
  * (missing file/block, false, malformed) → false. Scans only the top-level
  * `ultracode:` block's `enabled:` child; no full YAML parse needed.
  */
 function isUltracodeEnabled(directory) {
-  const configPath = join(directory, ".trellis", "config.yaml")
+  const configPath = join(directory, ".polygon", "config.yaml")
   if (!existsSync(configPath)) return false
   let content
   try {
@@ -159,7 +159,7 @@ function buildBreadcrumb(id, status, templates, source = null, breadcrumbKey = n
 
 // OpenCode 1.2.x expects plugins to be factory functions (see inject-subagent-context.js comment).
 export default async ({ directory }) => {
-  const ctx = new TrellisContext(directory)
+  const ctx = new PolygonContext(directory)
   debugLog("workflow-state", "Plugin loaded, directory:", directory)
 
   return {
@@ -170,17 +170,17 @@ export default async ({ directory }) => {
           // Skip Polygon sub-agent turns — the per-turn breadcrumb is for the
           // main session only; sub-agent context comes from the parent's
           // tool.execute.before injection.
-          if (isTrellisSubagent(input)) {
-            debugLog("workflow-state", "Skipping trellis subagent turn:", input?.agent)
+          if (isPolygonSubagent(input)) {
+            debugLog("workflow-state", "Skipping polygon subagent turn:", input?.agent)
             return
           }
-          if (process.env.TRELLIS_HOOKS === "0" || process.env.TRELLIS_DISABLE_HOOKS === "1") {
+          if (process.env.POLYGON_HOOKS === "0" || process.env.POLYGON_DISABLE_HOOKS === "1") {
             return
           }
           if (process.env.OPENCODE_NON_INTERACTIVE === "1") {
             return
           }
-          if (!ctx.isTrellisProject()) {
+          if (!ctx.isPolygonProject()) {
             return
           }
           const templates = loadBreadcrumbs(directory)

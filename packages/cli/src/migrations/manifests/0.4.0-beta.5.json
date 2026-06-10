@@ -5,5 +5,5 @@
   "recommendMigrate": false,
   "changelog": "**Enhancements:**\n- fix(init): rename \"empty templates\" to \"from scratch\" in template picker for clearer UX\n\n**Bug Fixes:**\n- fix(iflow): correct CLI agent invocation syntax in cli_adapter.py (#95)",
   "migrations": [],
-  "notes": "Run `trellis update` to sync."
+  "notes": "Run `polygon update` to sync."
 }

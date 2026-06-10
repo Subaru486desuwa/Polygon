@@ -4,7 +4,12 @@ import path from "node:path";
 import chalk from "chalk";
 import inquirer from "inquirer";
 
-import { DIR_NAMES, FILE_NAMES, PATHS } from "../constants/paths.js";
+import {
+  DIR_NAMES,
+  FILE_NAMES,
+  LEGACY_DIR_NAMES,
+  PATHS,
+} from "../constants/paths.js";
 import type { AITool } from "../types/ai-tools.js";
 import { VERSION, PACKAGE_NAME } from "../constants/version.js";
 import {
@@ -28,6 +33,7 @@ import {
   isTemplateModified,
   removeHash,
   renameHash,
+  rewriteHashPrefix,
   computeHash,
 } from "../utils/template-hash.js";
 import { compareVersions } from "../utils/compare-versions.js";
@@ -42,7 +48,7 @@ import {
   configYamlTemplate,
   gitignoreTemplate,
   workflowMdTemplate,
-} from "../templates/trellis/index.js";
+} from "../templates/polygon/index.js";
 import { agentsMdContent } from "../templates/markdown/index.js";
 
 import {
@@ -93,8 +99,13 @@ interface ChangeAnalysis {
 type ConflictAction = "overwrite" | "skip" | "create-new";
 
 const CLAUDE_SETTINGS_PATH = ".claude/settings.json";
-const TRELLIS_BLOCK_START = "<!-- TRELLIS:START -->";
-const TRELLIS_BLOCK_END = "<!-- TRELLIS:END -->";
+const POLYGON_BLOCK_START = "<!-- POLYGON:START -->";
+const POLYGON_BLOCK_END = "<!-- POLYGON:END -->";
+// Pre-rebrand managed-block markers. Existing AGENTS.md files still carry
+// these; the block finders below accept either so `polygon update` migrates
+// the old block to the new markers instead of appending a duplicate.
+const LEGACY_BLOCK_START = "<!-- TRELLIS:START -->";
+const LEGACY_BLOCK_END = "<!-- TRELLIS:END -->";
 const LEGACY_UNTRACKED_AGENTS_MD_BLOCK_HASHES = new Set<string>([
   // v0.5.0-beta.17 and earlier wrote AGENTS.md but did not hash-track it.
   // This hash is the pristine Polygon-managed block before the Subagents
@@ -113,43 +124,49 @@ const PROTECTED_PATHS = [
   `${DIR_NAMES.WORKFLOW}/.current-task`,
 ];
 
-function getTrellisManagedBlock(content: string): string | null {
-  const start = content.indexOf(TRELLIS_BLOCK_START);
-  if (start === -1) {
-    return null;
+/** Locate the managed block in `content`, accepting current or legacy markers. */
+function findManagedBlockBounds(
+  content: string,
+): { start: number; endExclusive: number } | null {
+  for (const [startMarker, endMarker] of [
+    [POLYGON_BLOCK_START, POLYGON_BLOCK_END],
+    [LEGACY_BLOCK_START, LEGACY_BLOCK_END],
+  ]) {
+    const start = content.indexOf(startMarker);
+    if (start === -1) continue;
+    const end = content.indexOf(endMarker, start);
+    if (end === -1) continue;
+    return { start, endExclusive: end + endMarker.length };
   }
-
-  const end = content.indexOf(TRELLIS_BLOCK_END, start);
-  if (end === -1) {
-    return null;
-  }
-
-  return content.slice(start, end + TRELLIS_BLOCK_END.length);
+  return null;
 }
 
-function replaceTrellisManagedBlock(
+function getPolygonManagedBlock(content: string): string | null {
+  const bounds = findManagedBlockBounds(content);
+  if (!bounds) {
+    return null;
+  }
+  return content.slice(bounds.start, bounds.endExclusive);
+}
+
+function replacePolygonManagedBlock(
   existingContent: string,
   templateContent: string,
 ): string | null {
-  const existingStart = existingContent.indexOf(TRELLIS_BLOCK_START);
-  if (existingStart === -1) {
+  const bounds = findManagedBlockBounds(existingContent);
+  if (!bounds) {
     return null;
   }
 
-  const existingEnd = existingContent.indexOf(TRELLIS_BLOCK_END, existingStart);
-  if (existingEnd === -1) {
-    return null;
-  }
-
-  const templateBlock = getTrellisManagedBlock(templateContent);
+  const templateBlock = getPolygonManagedBlock(templateContent);
   if (!templateBlock) {
     return null;
   }
 
   return (
-    existingContent.slice(0, existingStart) +
+    existingContent.slice(0, bounds.start) +
     templateBlock +
-    existingContent.slice(existingEnd + TRELLIS_BLOCK_END.length)
+    existingContent.slice(bounds.endExclusive)
   );
 }
 
@@ -163,7 +180,7 @@ function buildAgentsMdTemplate(cwd: string): string {
 
   // Existing file already has TRELLIS:START/END markers — replace just the
   // managed block, preserving everything outside it.
-  const replaced = replaceTrellisManagedBlock(existingContent, agentsMdContent);
+  const replaced = replacePolygonManagedBlock(existingContent, agentsMdContent);
   if (replaced !== null) {
     return replaced;
   }
@@ -172,7 +189,7 @@ function buildAgentsMdTemplate(cwd: string): string {
   // user hand-wrote AGENTS.md without ever running through Polygon). Append
   // the template's managed block at the end so user content is preserved
   // instead of clobbered.
-  const templateBlock = getTrellisManagedBlock(agentsMdContent);
+  const templateBlock = getPolygonManagedBlock(agentsMdContent);
   if (!templateBlock) {
     return agentsMdContent;
   }
@@ -188,7 +205,7 @@ function isKnownUntrackedTemplate(
     return false;
   }
 
-  const managedBlock = getTrellisManagedBlock(existingContent);
+  const managedBlock = getPolygonManagedBlock(existingContent);
   if (!managedBlock) {
     return false;
   }
@@ -363,7 +380,7 @@ function executeSafeFileDeletes(
 }
 
 /**
- * Load update.skip paths from .trellis/config.yaml
+ * Load update.skip paths from .polygon/config.yaml
  *
  * Parses simple YAML structure:
  *   update:
@@ -564,20 +581,24 @@ function needsCodexUpgrade(cwd: string): boolean {
   }
 
   // Codex-only marker: legacy Codex installs always tracked the
-  // command-as-skill files `trellis-continue/SKILL.md` and
-  // `trellis-finish-work/SKILL.md` under `.agents/skills/`. Other platforms
-  // that share `.agents/skills/` (e.g. Gemini CLI 0.40+ via the workspace
-  // alias — issue #224) only write the 5 workflow skills (brainstorm,
-  // before-dev, check, break-loop, update-spec) and never these two
-  // command files, so their presence in the hash file is a reliable signal
-  // that the project was originally configured with Codex before `.codex/`
-  // existed as a separate config dir.
+  // command-as-skill files `continue/SKILL.md` and `finish-work/SKILL.md`
+  // under `.agents/skills/`. Other platforms that share `.agents/skills/`
+  // (e.g. Gemini CLI 0.40+ via the workspace alias — issue #224) only write
+  // the 5 workflow skills (brainstorm, before-dev, check, break-loop,
+  // update-spec) and never these two command files, so their presence in the
+  // hash file is a reliable signal that the project was originally configured
+  // with Codex before `.codex/` existed as a separate config dir.
+  // Match both the post-rebrand `polygon-` prefix and the pre-rebrand
+  // `polygon-` prefix so detection works whether or not the 0.7.0 asset
+  // rename has run yet.
   const hashes = loadHashes(cwd);
   const keys = Object.keys(hashes);
-  return (
-    keys.some((key) => key === ".agents/skills/trellis-continue/SKILL.md") ||
-    keys.some((key) => key === ".agents/skills/trellis-finish-work/SKILL.md")
-  );
+  const isCodexMarker = (key: string): boolean =>
+    key === ".agents/skills/polygon-continue/SKILL.md" ||
+    key === ".agents/skills/polygon-finish-work/SKILL.md" ||
+    key === ".agents/skills/polygon-continue/SKILL.md" ||
+    key === ".agents/skills/polygon-finish-work/SKILL.md";
+  return keys.some(isCodexMarker);
 }
 
 function preserveExistingClaudeStatusLine(
@@ -627,7 +648,7 @@ function preserveExistingRegistryConfig(cwd: string, template: string): string {
     "#-------------------------------------------------------------------------------\n" +
     "# Registry\n" +
     "#-------------------------------------------------------------------------------\n\n" +
-    "# Source used to install .trellis/spec. trellis update refreshes this\n" +
+    "# Source used to install .polygon/spec. polygon update refreshes this\n" +
     "# hash-tracked spec template while preserving local edits through the\n" +
     "# normal update conflict flow.\n" +
     "registry:\n" +
@@ -649,7 +670,7 @@ async function collectRegistrySpecTemplates(
   } catch (error) {
     console.log(
       chalk.yellow(
-        `Warning: invalid registry.spec.source in .trellis/config.yaml: ${
+        `Warning: invalid registry.spec.source in .polygon/config.yaml: ${
           error instanceof Error ? error.message : String(error)
         }`,
       ),
@@ -682,7 +703,7 @@ async function collectRegistrySpecTemplates(
       return new Map();
     }
     const tempRoot = await fs.promises.mkdtemp(
-      path.join(os.tmpdir(), "trellis-registry-template-"),
+      path.join(os.tmpdir(), "polygon-registry-template-"),
     );
     try {
       const result = await downloadTemplateById(
@@ -1327,7 +1348,7 @@ function classifyMigrations(
       continue;
     }
     // For non-rename types, also block writing TO protected paths
-    // rename/rename-dir are allowed to target protected paths (e.g., 0.2.0 renames into .trellis/workspace)
+    // rename/rename-dir are allowed to target protected paths (e.g., 0.2.0 renames into .polygon/workspace)
     if (
       item.to &&
       isProtectedPath(item.to) &&
@@ -1548,7 +1569,7 @@ async function promptMigrationAction(
 
 /**
  * Clean up empty directories after file migration
- * Recursively removes empty parent directories up to .trellis root
+ * Recursively removes empty parent directories up to .polygon root
  */
 /** @internal Exported for testing only */
 export function cleanupEmptyDirs(cwd: string, dirPath: string): void {
@@ -1559,7 +1580,7 @@ export function cleanupEmptyDirs(cwd: string, dirPath: string): void {
     return;
   }
 
-  // Safety: never delete managed root directories themselves (e.g., .claude, .trellis)
+  // Safety: never delete managed root directories themselves (e.g., .claude, .polygon)
   if (isManagedRootDir(dirPath)) {
     return;
   }
@@ -1728,7 +1749,7 @@ async function executeMigrations(
 
     // For `backup-rename`, leave an inline .backup copy of the user's modified
     // original next to the new location (for rename) or in place (for delete).
-    // This is in addition to the full project snapshot at .trellis/.backup-*/;
+    // This is in addition to the full project snapshot at .polygon/.backup-*/;
     // the inline copy is more discoverable when the user wants to diff or merge
     // their customizations against the new template.
     if (item.type === "rename" && item.to) {
@@ -1759,7 +1780,7 @@ async function executeMigrations(
 
       if (action === "backup-rename") {
         // Keep a .backup copy in place before deletion so the user can recover
-        // inline without digging through .trellis/.backup-*/.
+        // inline without digging through .polygon/.backup-*/.
         fs.copyFileSync(filePath, filePath + ".backup");
       }
 
@@ -1806,15 +1827,116 @@ function printMigrationResult(result: MigrationResult): void {
 }
 
 /**
+ * Pre-rebrand migration: rename a legacy `.trellis/` workflow directory to
+ * `.polygon/` before anything else runs.
+ *
+ * This MUST happen before the init guard and `getInstalledVersion()` below:
+ * both read `${DIR_NAMES.WORKFLOW}` (now `.polygon`), so a project that only
+ * has `.trellis/` would otherwise be misread as "not initialized" and the
+ * 0.7.0 asset-rename migration would never fire.
+ *
+ * The rename is a single atomic `fs.renameSync` of the whole subtree (tasks /
+ * spec / workspace / journal / config / scripts / hashes move with it — zero
+ * data copy). After the move we rewrite the hash manifest's key prefix so the
+ * 3-way merge keeps recognizing managed files. Platform assets under
+ * `.claude/` / `.codex/` / `.agents/` are NOT touched here — those `trellis-*`
+ * → `polygon-*` renames live in the 0.7.0 manifest and run later via the
+ * normal migration flow.
+ *
+ * Idempotent: once `.polygon/` exists the detection short-circuits, so a second
+ * run is a no-op. If both dirs somehow exist (a half-finished manual move) we
+ * refuse to touch either and warn.
+ */
+function migrateLegacyWorkflowDir(cwd: string): void {
+  const legacyDir = path.join(cwd, LEGACY_DIR_NAMES.WORKFLOW);
+  const newDir = path.join(cwd, DIR_NAMES.WORKFLOW);
+
+  if (!fs.existsSync(legacyDir)) return; // nothing to migrate
+  if (fs.existsSync(newDir)) {
+    // Both present — don't guess. Leave the user's data untouched.
+    if (fs.existsSync(legacyDir)) {
+      console.log(
+        chalk.yellow(
+          `⚠️  Found both ${LEGACY_DIR_NAMES.WORKFLOW}/ and ${DIR_NAMES.WORKFLOW}/. ` +
+            `Skipping the automatic rename — resolve manually (keep ${DIR_NAMES.WORKFLOW}/).`,
+        ),
+      );
+    }
+    return;
+  }
+
+  // Confirm it's really a Polygon workflow dir, not a coincidental name.
+  const looksLikeWorkflow =
+    fs.existsSync(path.join(legacyDir, ".version")) ||
+    fs.existsSync(path.join(legacyDir, "config.yaml"));
+  if (!looksLikeWorkflow) return;
+
+  try {
+    fs.renameSync(legacyDir, newDir);
+  } catch (err) {
+    const code = (err as NodeJS.ErrnoException)?.code;
+    if (code === "EXDEV") {
+      // Cross-device rename (rare under one repo root): fall back to copy+delete.
+      fs.cpSync(legacyDir, newDir, { recursive: true });
+      fs.rmSync(legacyDir, { recursive: true, force: true });
+    } else {
+      console.log(
+        chalk.red(
+          `Error: failed to rename ${LEGACY_DIR_NAMES.WORKFLOW}/ → ${DIR_NAMES.WORKFLOW}/: ${String(err)}`,
+        ),
+      );
+      throw err;
+    }
+  }
+
+  // Repoint hash-manifest keys ( .trellis/... → .polygon/... ).
+  rewriteHashPrefix(
+    cwd,
+    `${LEGACY_DIR_NAMES.WORKFLOW}/`,
+    `${DIR_NAMES.WORKFLOW}/`,
+  );
+
+  console.log(
+    chalk.cyan(
+      `Renamed ${LEGACY_DIR_NAMES.WORKFLOW}/ → ${DIR_NAMES.WORKFLOW}/ (Polygon rebrand).`,
+    ),
+  );
+
+  // Heads-up if the repo root .gitignore still references the old dir.
+  const gitignorePath = path.join(cwd, ".gitignore");
+  try {
+    if (
+      fs.existsSync(gitignorePath) &&
+      fs
+        .readFileSync(gitignorePath, "utf-8")
+        .includes(LEGACY_DIR_NAMES.WORKFLOW)
+    ) {
+      console.log(
+        chalk.yellow(
+          `   Note: your .gitignore still mentions ${LEGACY_DIR_NAMES.WORKFLOW}/ — ` +
+            `update it to ${DIR_NAMES.WORKFLOW}/ if you intended to ignore it.`,
+        ),
+      );
+    }
+  } catch {
+    // best-effort, ignore
+  }
+}
+
+/**
  * Main update command
  */
 export async function update(options: UpdateOptions): Promise<void> {
   const cwd = process.cwd();
 
+  // Pre-rebrand: migrate a legacy `.trellis/` dir to `.polygon/` before the
+  // init guard and version read (both look at `.polygon/`).
+  migrateLegacyWorkflowDir(cwd);
+
   // Check if Polygon is initialized
   if (!fs.existsSync(path.join(cwd, DIR_NAMES.WORKFLOW))) {
     console.log(chalk.red("Error: Polygon not initialized in this directory."));
-    console.log(chalk.gray("Run 'trellis init' first."));
+    console.log(chalk.gray("Run 'polygon init' first."));
     return;
   }
 
@@ -1870,7 +1992,7 @@ export async function update(options: UpdateOptions): Promise<void> {
         chalk.gray(`  1. Update your CLI: npm install -g ${PACKAGE_NAME}`),
       );
       console.log(
-        chalk.gray(`  2. Force downgrade: trellis update --allow-downgrade\n`),
+        chalk.gray(`  2. Force downgrade: polygon update --allow-downgrade\n`),
       );
       return;
     }
@@ -1893,7 +2015,7 @@ export async function update(options: UpdateOptions): Promise<void> {
   if (isUnknownVersion) {
     console.log(
       chalk.yellow(
-        "⚠️  No version file found. Skipping migrations — run trellis init to fix.",
+        "⚠️  No version file found. Skipping migrations — run polygon init to fix.",
       ),
     );
     console.log(chalk.gray("   Template updates will still be applied."));
@@ -1918,7 +2040,7 @@ export async function update(options: UpdateOptions): Promise<void> {
 
   // Self-heal poisoned manifests: prune entries that no current platform
   // configurator owns. This silently removes user-owned paths that early
-  // buggy versions of `trellis init` over-hashed (e.g. .codex/sessions/*).
+  // buggy versions of `polygon init` over-hashed (e.g. .codex/sessions/*).
   // Include codex in known-platforms when codexUpgradeNeeded so legacy Codex
   // markers under .agents/skills/ survive into the upgrade flow.
   {
@@ -2058,7 +2180,7 @@ export async function update(options: UpdateOptions): Promise<void> {
             ),
         );
         console.log("");
-        console.log(chalk.yellow(`  Run: trellis update --migrate`));
+        console.log(chalk.yellow(`  Run: polygon update --migrate`));
         console.log("");
         console.log(
           chalk.gray(
@@ -2273,7 +2395,7 @@ export async function update(options: UpdateOptions): Promise<void> {
 
     // Hardcoded: Rename traces-*.md to journal-*.md in workspace directories
     // Why hardcoded: The migration system only supports fixed path renames, not pattern-based.
-    // traces-*.md files are in .trellis/workspace/{developer}/ with variable developer names
+    // traces-*.md files are in .polygon/workspace/{developer}/ with variable developer names
     // and variable file numbers (traces-1.md, traces-2.md, etc.), so we can't enumerate them
     // in the migration manifest. This is a one-time migration for the 0.2.0 naming redesign.
     const workspaceDir = path.join(cwd, PATHS.WORKSPACE);
@@ -2526,7 +2648,7 @@ export async function update(options: UpdateOptions): Promise<void> {
           status: "planning",
           scope: "migration",
           priority: "P1",
-          creator: "trellis-update",
+          creator: "polygon-update",
           assignee: currentDeveloper,
           createdAt: todayStr,
         });
@@ -2541,7 +2663,7 @@ export async function update(options: UpdateOptions): Promise<void> {
         prdContent += `**From Version**: ${projectVersion}\n`;
         prdContent += `**To Version**: ${cliVersion}\n`;
         prdContent += `**Assignee**: ${currentDeveloper}\n\n`;
-        prdContent += `## Status\n\n- [ ] Review migration guide\n- [ ] Update custom files\n- [ ] Run \`trellis update --migrate\`\n- [ ] Test workflows\n\n`;
+        prdContent += `## Status\n\n- [ ] Review migration guide\n- [ ] Update custom files\n- [ ] Run \`polygon update --migrate\`\n- [ ] Test workflows\n\n`;
 
         for (const {
           version,

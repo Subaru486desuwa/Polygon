@@ -33,6 +33,7 @@ import { configureCopilot } from "./copilot.js";
 import { configureDroid } from "./droid.js";
 import { configurePi, collectPiTemplates } from "./pi.js";
 import { configureReasonix, collectReasonixTemplates } from "./reasonix.js";
+import { DIR_NAMES } from "../constants/paths.js";
 
 // Shared utilities
 import {
@@ -41,7 +42,7 @@ import {
   resolveAllAsSkills,
   resolveAllAsSkillsNeutral,
   resolveBundledSkills,
-  resolveCodexTrellisStartSkill,
+  resolveCodexPolygonStartSkill,
   resolveCommands,
   resolveSkills,
   resolveSkillsNeutral,
@@ -162,7 +163,7 @@ const PLATFORM_FUNCTIONS: Record<AITool, PlatformFunctions> = {
       const ctx = AI_TOOLS["claude-code"].templateContext;
       const files = collectBothTemplates(
         ctx,
-        (n) => `.claude/commands/trellis/${n}.md`,
+        (n) => `.claude/commands/polygon/${n}.md`,
         ".claude/skills",
       );
       for (const agent of getClaudeAgents()) {
@@ -184,7 +185,7 @@ const PLATFORM_FUNCTIONS: Record<AITool, PlatformFunctions> = {
     collectTemplates: () => {
       const files = collectBothTemplates(
         AI_TOOLS.cursor.templateContext,
-        (n) => `.cursor/commands/trellis-${n}.md`,
+        (n) => `.cursor/commands/polygon-${n}.md`,
         ".cursor/skills",
       );
       for (const agent of getCursorAgents()) {
@@ -216,14 +217,14 @@ const PLATFORM_FUNCTIONS: Record<AITool, PlatformFunctions> = {
       )) {
         files.set(filePath, content);
       }
-      // Mirror configureCodex's extra trellis-start write so `trellis update`
+      // Mirror configureCodex's extra polygon-start write so `polygon update`
       // picks up the file (was missing pre-0.5.7 — upgrade path silently
       // dropped the skill).
-      const trellisStart = resolveCodexTrellisStartSkill(ctx);
-      if (trellisStart) {
+      const polygonStart = resolveCodexPolygonStartSkill(ctx);
+      if (polygonStart) {
         files.set(
-          `.agents/skills/${trellisStart.name}/SKILL.md`,
-          trellisStart.content,
+          `.agents/skills/${polygonStart.name}/SKILL.md`,
+          polygonStart.content,
         );
       }
       for (const skill of getCodexPlatformSkills()) {
@@ -288,7 +289,7 @@ const PLATFORM_FUNCTIONS: Record<AITool, PlatformFunctions> = {
       const files = new Map<string, string>();
       for (const cmd of resolveCommands(ctx)) {
         const toml = `description = "Polygon: ${cmd.name}"\n\nprompt = """\n${cmd.content}\n"""\n`;
-        files.set(`.gemini/commands/trellis/${cmd.name}.toml`, toml);
+        files.set(`.gemini/commands/polygon/${cmd.name}.toml`, toml);
       }
       // Shared skills written to `.agents/skills/` (Gemini CLI 0.40+ workspace
       // alias). Neutral resolver keeps content byte-identical to Codex's writes
@@ -327,7 +328,7 @@ const PLATFORM_FUNCTIONS: Record<AITool, PlatformFunctions> = {
     collectTemplates: () =>
       collectBothTemplates(
         AI_TOOLS.windsurf.templateContext,
-        (n) => `.windsurf/workflows/trellis-${n}.md`,
+        (n) => `.windsurf/workflows/polygon-${n}.md`,
         ".windsurf/skills",
       ),
   },
@@ -336,7 +337,7 @@ const PLATFORM_FUNCTIONS: Record<AITool, PlatformFunctions> = {
     collectTemplates: () => {
       const files = collectBothTemplates(
         AI_TOOLS.qoder.templateContext,
-        (n) => `.qoder/commands/trellis-${n}.md`,
+        (n) => `.qoder/commands/polygon-${n}.md`,
         ".qoder/skills",
         (filePath, content) => {
           const name = path.basename(filePath, ".md");
@@ -362,7 +363,7 @@ const PLATFORM_FUNCTIONS: Record<AITool, PlatformFunctions> = {
     collectTemplates: () => {
       const files = collectBothTemplates(
         AI_TOOLS.codebuddy.templateContext,
-        (n) => `.codebuddy/commands/trellis/${n}.md`,
+        (n) => `.codebuddy/commands/polygon/${n}.md`,
         ".codebuddy/skills",
       );
       for (const agent of getCodebuddyAgents()) {
@@ -418,7 +419,7 @@ const PLATFORM_FUNCTIONS: Record<AITool, PlatformFunctions> = {
       }
       const hooksConfig = resolvePlaceholders(getCopilotHooksConfig());
       files.set(".github/copilot/hooks.json", hooksConfig);
-      files.set(".github/hooks/trellis.json", hooksConfig);
+      files.set(".github/hooks/polygon.json", hooksConfig);
       return files;
     },
   },
@@ -427,7 +428,7 @@ const PLATFORM_FUNCTIONS: Record<AITool, PlatformFunctions> = {
     collectTemplates: () => {
       const files = collectBothTemplates(
         AI_TOOLS.droid.templateContext,
-        (n) => `.factory/commands/trellis/${n}.md`,
+        (n) => `.factory/commands/polygon/${n}.md`,
         ".factory/skills",
       );
       for (const droid of getDroidDroids()) {
@@ -469,8 +470,11 @@ export const PLATFORM_MANAGED_DIRS = PLATFORM_IDS.flatMap((id) =>
   getManagedPaths(id),
 );
 
-/** All directories managed by Polygon (including .trellis itself) */
-export const ALL_MANAGED_DIRS = [".trellis", ...new Set(PLATFORM_MANAGED_DIRS)];
+/** All directories managed by Polygon (including .polygon itself) */
+export const ALL_MANAGED_DIRS = [
+  DIR_NAMES.WORKFLOW,
+  ...new Set(PLATFORM_MANAGED_DIRS),
+];
 
 /**
  * Detect which platforms are configured by checking for configDir existence.

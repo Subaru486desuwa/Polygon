@@ -36,7 +36,7 @@ import {
   replacePythonCommandLiterals,
 } from "../../src/configurators/shared.js";
 
-const BUNDLED_SKILL_NAMES = ["trellis-meta", "trellis-spec-bootstrap"];
+const BUNDLED_SKILL_NAMES = ["polygon-meta", "polygon-spec-bootstrap"];
 const BUNDLED_SKILL_NAME = BUNDLED_SKILL_NAMES[0];
 const BUNDLED_REFERENCE = path.join(
   BUNDLED_SKILL_NAME,
@@ -45,7 +45,7 @@ const BUNDLED_REFERENCE = path.join(
   "overview.md",
 );
 const SPEC_BOOTSTRAP_REFERENCE = path.join(
-  "trellis-spec-bootstrap",
+  "polygon-spec-bootstrap",
   "references",
   "spec-writing.md",
 );
@@ -62,7 +62,7 @@ describe("getConfiguredPlatforms", () => {
   let tmpDir: string;
 
   beforeEach(() => {
-    tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), "trellis-platforms-"));
+    tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), "polygon-platforms-"));
   });
 
   afterEach(() => {
@@ -191,7 +191,7 @@ describe("configurePlatform", () => {
   let tmpDir: string;
 
   beforeEach(() => {
-    tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), "trellis-configure-"));
+    tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), "polygon-configure-"));
     // Use force mode to avoid interactive prompts
     setWriteMode("force");
   });
@@ -225,7 +225,7 @@ describe("configurePlatform", () => {
   it("configurePlatform writes collected templates byte-for-byte for every platform", async () => {
     for (const id of PLATFORM_IDS) {
       const platformDir = fs.mkdtempSync(
-        path.join(os.tmpdir(), `trellis-parity-${id}-`),
+        path.join(os.tmpdir(), `polygon-parity-${id}-`),
       );
       try {
         await configurePlatform(id, platformDir);
@@ -260,8 +260,8 @@ describe("configurePlatform", () => {
     // Codex writes shared skills under `.agents/skills/` using the neutral
     // placeholder resolver so the rendered files are byte-identical to
     // Gemini's writes for the same skill names — see issue #224 fix.
-    // Plus a Codex-specific `trellis-start` skill referenced by the
-    // <trellis-bootstrap> notice in inject-workflow-state.py (the SessionStart
+    // Plus a Codex-specific `polygon-start` skill referenced by the
+    // <polygon-bootstrap> notice in inject-workflow-state.py (the SessionStart
     // hook was removed for de-recursion).
     const expected = resolveAllAsSkillsNeutral(AI_TOOLS.codex.templateContext);
     const skillsRoot = path.join(tmpDir, ".agents", "skills");
@@ -275,7 +275,7 @@ describe("configurePlatform", () => {
       [
         ...expected.map((s) => s.name),
         ...BUNDLED_SKILL_NAMES,
-        "trellis-start",
+        "polygon-start",
       ].sort(),
     );
 
@@ -286,7 +286,7 @@ describe("configurePlatform", () => {
     }
     expect(fs.existsSync(path.join(skillsRoot, BUNDLED_REFERENCE))).toBe(true);
     expect(
-      fs.existsSync(path.join(skillsRoot, "trellis-start", "SKILL.md")),
+      fs.existsSync(path.join(skillsRoot, "polygon-start", "SKILL.md")),
     ).toBe(true);
   });
 
@@ -311,7 +311,7 @@ describe("configurePlatform", () => {
       // Codex is a class-2 (pull-based) platform. Prelude is injected into
       // implement/check only — research is orthogonal (searches spec tree,
       // no task dependency) and must stay pristine.
-      const needsPrelude = ["trellis-implement", "trellis-check"].includes(
+      const needsPrelude = ["polygon-implement", "polygon-check"].includes(
         agent.name,
       );
       if (needsPrelude) {
@@ -390,7 +390,7 @@ describe("configurePlatform", () => {
     await configurePlatform("gemini", tmpDir);
 
     // Commands as TOML
-    const commandsDir = path.join(tmpDir, ".gemini", "commands", "trellis");
+    const commandsDir = path.join(tmpDir, ".gemini", "commands", "polygon");
     expect(fs.existsSync(commandsDir)).toBe(true);
     const tomlFiles = fs
       .readdirSync(commandsDir)
@@ -416,7 +416,7 @@ describe("configurePlatform", () => {
         ).length,
     );
     for (const dir of skillDirs) {
-      expect(dir.name.startsWith("trellis-")).toBe(true);
+      expect(dir.name.startsWith("polygon-")).toBe(true);
       expect(fs.existsSync(path.join(skillsDir, dir.name, "SKILL.md"))).toBe(
         true,
       );
@@ -522,10 +522,10 @@ describe("configurePlatform", () => {
       .filter((f) => f.endsWith(".md"))
       .sort();
     expect(actualCommandFiles).toEqual(
-      expectedCommands.map((c) => `trellis-${c.name}.md`).sort(),
+      expectedCommands.map((c) => `polygon-${c.name}.md`).sort(),
     );
     for (const cmd of expectedCommands) {
-      const name = `trellis-${cmd.name}`;
+      const name = `polygon-${cmd.name}`;
       const filePath = path.join(commandsDir, `${name}.md`);
       const actual = fs.readFileSync(filePath, "utf-8");
       expect(actual).toBe(wrapWithCommandFrontmatter(name, cmd.content));
@@ -547,9 +547,9 @@ describe("configurePlatform", () => {
     }
     expect(fs.existsSync(path.join(skillsDir, BUNDLED_REFERENCE))).toBe(true);
 
-    expect(actualSkillDirs).not.toContain("trellis-finish-work");
-    expect(actualSkillDirs).not.toContain("trellis-continue");
-    expect(actualSkillDirs).not.toContain("trellis-start");
+    expect(actualSkillDirs).not.toContain("polygon-finish-work");
+    expect(actualSkillDirs).not.toContain("polygon-continue");
+    expect(actualSkillDirs).not.toContain("polygon-start");
   });
 
   it("configurePlatform('qoder') does not include compiled artifacts", async () => {
@@ -583,7 +583,7 @@ describe("configurePlatform", () => {
     await configurePlatform("codebuddy", tmpDir);
 
     const expected = resolveCommands(AI_TOOLS.codebuddy.templateContext);
-    const commandsDir = path.join(tmpDir, ".codebuddy", "commands", "trellis");
+    const commandsDir = path.join(tmpDir, ".codebuddy", "commands", "polygon");
     expect(fs.existsSync(commandsDir)).toBe(true);
 
     const actualFiles = fs
@@ -681,7 +681,7 @@ describe("configurePlatform", () => {
 
     const expected = resolvePlaceholders(getCopilotHooksConfig());
     const tracked = path.join(tmpDir, ".github", "copilot", "hooks.json");
-    const discovery = path.join(tmpDir, ".github", "hooks", "trellis.json");
+    const discovery = path.join(tmpDir, ".github", "hooks", "polygon.json");
 
     expect(fs.existsSync(tracked)).toBe(true);
     expect(fs.existsSync(discovery)).toBe(true);
@@ -712,10 +712,10 @@ describe("configurePlatform", () => {
     expect(fs.existsSync(path.join(tmpDir, ".cursor", "commands"))).toBe(true);
   });
 
-  it("configurePlatform('droid') creates .factory/commands/trellis directory", async () => {
+  it("configurePlatform('droid') creates .factory/commands/polygon directory", async () => {
     await configurePlatform("droid", tmpDir);
     expect(
-      fs.existsSync(path.join(tmpDir, ".factory", "commands", "trellis")),
+      fs.existsSync(path.join(tmpDir, ".factory", "commands", "polygon")),
     ).toBe(true);
   });
 
@@ -726,7 +726,7 @@ describe("configurePlatform", () => {
       tmpDir,
       ".factory",
       "commands",
-      "trellis",
+      "polygon",
       "start.md",
     );
     expect(fs.existsSync(startPath)).toBe(false);
@@ -734,7 +734,7 @@ describe("configurePlatform", () => {
       tmpDir,
       ".factory",
       "commands",
-      "trellis",
+      "polygon",
       "finish-work.md",
     );
     expect(fs.existsSync(finishPath)).toBe(true);
@@ -742,7 +742,7 @@ describe("configurePlatform", () => {
       tmpDir,
       ".factory",
       "commands",
-      "trellis",
+      "polygon",
       "continue.md",
     );
     expect(fs.existsSync(continuePath)).toBe(true);
@@ -751,13 +751,13 @@ describe("configurePlatform", () => {
       tmpDir,
       ".factory",
       "skills",
-      "trellis-check",
+      "polygon-check",
       "SKILL.md",
     );
     expect(fs.existsSync(skillPath)).toBe(true);
     const content = fs.readFileSync(skillPath, "utf-8");
     expect(content.startsWith("---\n")).toBe(true);
-    expect(content).toContain("name: trellis-check");
+    expect(content).toContain("name: polygon-check");
   });
 
   it("configurePlatform('pi') creates extension-backed Pi assets", async () => {
@@ -766,18 +766,18 @@ describe("configurePlatform", () => {
     expect(fs.existsSync(path.join(tmpDir, ".pi", "settings.json"))).toBe(true);
     expect(
       fs.existsSync(
-        path.join(tmpDir, ".pi", "prompts", "trellis-finish-work.md"),
+        path.join(tmpDir, ".pi", "prompts", "polygon-finish-work.md"),
       ),
     ).toBe(true);
     expect(
-      fs.existsSync(path.join(tmpDir, ".pi", "prompts", "trellis-continue.md")),
+      fs.existsSync(path.join(tmpDir, ".pi", "prompts", "polygon-continue.md")),
     ).toBe(true);
     expect(
-      fs.existsSync(path.join(tmpDir, ".pi", "prompts", "trellis-start.md")),
+      fs.existsSync(path.join(tmpDir, ".pi", "prompts", "polygon-start.md")),
     ).toBe(false);
     expect(
       fs.existsSync(
-        path.join(tmpDir, ".pi", "skills", "trellis-check", "SKILL.md"),
+        path.join(tmpDir, ".pi", "skills", "polygon-check", "SKILL.md"),
       ),
     ).toBe(true);
     expect(
@@ -789,32 +789,32 @@ describe("configurePlatform", () => {
       ),
     ).toBe(true);
     expect(
-      fs.existsSync(path.join(tmpDir, ".pi", "agents", "trellis-implement.md")),
+      fs.existsSync(path.join(tmpDir, ".pi", "agents", "polygon-implement.md")),
     ).toBe(true);
     expect(
-      fs.existsSync(path.join(tmpDir, ".pi", "agents", "trellis-check.md")),
+      fs.existsSync(path.join(tmpDir, ".pi", "agents", "polygon-check.md")),
     ).toBe(true);
     expect(
-      fs.existsSync(path.join(tmpDir, ".pi", "agents", "trellis-research.md")),
+      fs.existsSync(path.join(tmpDir, ".pi", "agents", "polygon-research.md")),
     ).toBe(true);
     expect(
       fs.existsSync(
-        path.join(tmpDir, ".pi", "extensions", "trellis", "index.ts"),
+        path.join(tmpDir, ".pi", "extensions", "polygon", "index.ts"),
       ),
     ).toBe(true);
     expect(fs.existsSync(path.join(tmpDir, ".pi", "hooks"))).toBe(false);
 
     const extension = fs.readFileSync(
-      path.join(tmpDir, ".pi", "extensions", "trellis", "index.ts"),
+      path.join(tmpDir, ".pi", "extensions", "polygon", "index.ts"),
       "utf-8",
     );
     expect(extension).toContain('registerTool?.({');
     expect(extension).toContain('name: "subagent"');
     expect(extension).toContain('pi.on?.("session_start"');
     expect(extension).toContain('pi.on?.("tool_call"');
-    expect(extension).toContain("function injectTrellisContextIntoBash");
+    expect(extension).toContain("function injectPolygonContextIntoBash");
     expect(extension).toContain("ctx?.sessionManager?.getSessionId");
-    expect(extension).toContain("TRELLIS_CONTEXT_ID: contextKey");
+    expect(extension).toContain("POLYGON_CONTEXT_ID: contextKey");
     expect(extension).toContain("function stripMarkdownFrontmatter");
     expect(extension).toContain("function parseAgentConfig");
     expect(extension).toContain("function resolveSubagentRunConfig");
@@ -823,7 +823,7 @@ describe("configurePlatform", () => {
       'return thinking ? ["--thinking", thinking] : []',
     );
     expect(extension).toContain("function resolvePiInvocation");
-    expect(extension).toContain("TRELLIS_PI_CLI_JS");
+    expect(extension).toContain("POLYGON_PI_CLI_JS");
     expect(extension).toContain("...modelArgs");
     expect(extension).toContain("child.stdin?.end(prompt)");
     expect(extension).toContain("class BoundedBufferCollector");
@@ -833,7 +833,7 @@ describe("configurePlatform", () => {
     expect(extension).toContain('content: [{ type: "text", text: output }]');
     expect(extension).toContain("ctx?.ui?.notify?.(");
     expect(extension).toContain("systemPrompt:");
-    expect(extension).not.toContain("message: buildTrellisContext");
+    expect(extension).not.toContain("message: buildPolygonContext");
     expect(extension).not.toContain('message:\n      "Polygon project context');
     expect(extension).not.toContain("persistent: true");
     expect(extension).not.toContain(
@@ -846,7 +846,7 @@ describe("configurePlatform", () => {
     expect(extension).not.toContain("inject-workflow-state.py");
     expect(extension).not.toContain("inject-subagent-context.py");
     expect(extension).not.toContain("session-start.py");
-    // get_context.py is allowed: it lives in .trellis/scripts/ and is the
+    // get_context.py is allowed: it lives in .polygon/scripts/ and is the
     // shared session-overview script invoked by every platform's hook.
 
     const settings = JSON.parse(
@@ -887,7 +887,7 @@ describe("configurePlatform", () => {
 
     expect(
       fs.readFileSync(
-        path.join(tmpDir, ".pi", "extensions", "trellis", "index.ts"),
+        path.join(tmpDir, ".pi", "extensions", "polygon", "index.ts"),
         "utf-8",
       ),
     ).toBe(replacePythonCommandLiterals(getPiExtensionTemplate()));
@@ -897,7 +897,7 @@ describe("configurePlatform", () => {
         path.join(tmpDir, ".pi", "agents", `${agent.name}.md`),
         "utf-8",
       );
-      if (["trellis-implement", "trellis-check"].includes(agent.name)) {
+      if (["polygon-implement", "polygon-check"].includes(agent.name)) {
         expect(content).toContain("Required: Load Polygon Context First");
       } else {
         expect(content).toBe(replacePythonCommandLiterals(agent.content));
@@ -908,24 +908,24 @@ describe("configurePlatform", () => {
   it("collectPlatformTemplates('pi') maps prompts, skills, agents, extension, and settings", () => {
     const templates = collectPlatformTemplates("pi");
     expect(templates).toBeInstanceOf(Map);
-    expect(templates?.get(".pi/prompts/trellis-start.md")).toBeUndefined();
-    expect(templates?.get(".pi/prompts/trellis-finish-work.md")).toBeDefined();
-    expect(templates?.get(".pi/prompts/trellis-continue.md")).toBeDefined();
-    expect(templates?.get(".pi/skills/trellis-check/SKILL.md")).toBeDefined();
+    expect(templates?.get(".pi/prompts/polygon-start.md")).toBeUndefined();
+    expect(templates?.get(".pi/prompts/polygon-finish-work.md")).toBeDefined();
+    expect(templates?.get(".pi/prompts/polygon-continue.md")).toBeDefined();
+    expect(templates?.get(".pi/skills/polygon-check/SKILL.md")).toBeDefined();
     expect(
       templates?.get(
-        ".pi/skills/trellis-meta/references/local-architecture/overview.md",
+        ".pi/skills/polygon-meta/references/local-architecture/overview.md",
       ),
     ).toBeDefined();
     expect(
       templates?.get(
-        ".pi/skills/trellis-spec-bootstrap/references/spec-writing.md",
+        ".pi/skills/polygon-spec-bootstrap/references/spec-writing.md",
       ),
     ).toBeDefined();
-    expect(templates?.get(".pi/agents/trellis-implement.md")).toContain(
+    expect(templates?.get(".pi/agents/polygon-implement.md")).toContain(
       "Required: Load Polygon Context First",
     );
-    expect(templates?.get(".pi/extensions/trellis/index.ts")).toBe(
+    expect(templates?.get(".pi/extensions/polygon/index.ts")).toBe(
       replacePythonCommandLiterals(getPiExtensionTemplate()),
     );
     expect(templates?.get(".pi/settings.json")).toBe(
@@ -933,25 +933,25 @@ describe("configurePlatform", () => {
     );
   });
 
-  it("collectPlatformTemplates('droid') maps commands under .factory/commands/trellis/", () => {
+  it("collectPlatformTemplates('droid') maps commands under .factory/commands/polygon/", () => {
     const templates = collectPlatformTemplates("droid");
     expect(templates).toBeInstanceOf(Map);
     // Droid is agent-capable → start.md not emitted.
     expect(
-      templates?.get(".factory/commands/trellis/start.md"),
+      templates?.get(".factory/commands/polygon/start.md"),
     ).toBeUndefined();
     expect(
-      templates?.get(".factory/commands/trellis/finish-work.md"),
+      templates?.get(".factory/commands/polygon/finish-work.md"),
     ).toBeDefined();
     expect(
-      templates?.get(".factory/commands/trellis/continue.md"),
+      templates?.get(".factory/commands/polygon/continue.md"),
     ).toBeDefined();
   });
 
   it("does not throw for any platform", async () => {
     for (const id of PLATFORM_IDS) {
       const platformDir = fs.mkdtempSync(
-        path.join(os.tmpdir(), `trellis-cfg-${id}-`),
+        path.join(os.tmpdir(), `polygon-cfg-${id}-`),
       );
       try {
         setWriteMode("force");
@@ -997,7 +997,7 @@ describe("configurePlatform", () => {
     expect(templates?.get(".github/copilot/hooks.json")).toBe(
       resolvePlaceholders(getCopilotHooksConfig()),
     );
-    expect(templates?.get(".github/hooks/trellis.json")).toBe(
+    expect(templates?.get(".github/hooks/polygon.json")).toBe(
       resolvePlaceholders(getCopilotHooksConfig()),
     );
   });

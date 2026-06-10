@@ -38,7 +38,7 @@ print("Run: script.py <args>")
 
 # GOOD - Platform-aware wording
 print("Usage: python on Windows, python3 elsewhere")
-print("Run: {{PYTHON_CMD}} ./.trellis/scripts/task.py <args>")
+print("Run: {{PYTHON_CMD}} ./.polygon/scripts/task.py <args>")
 ```
 
 **Rule 2**: When generating config files at init time, use placeholder + platform detection:
@@ -221,12 +221,12 @@ PowerShell, Git Bash, MSYS2, or another POSIX-like shell.
 
 ```javascript
 // BAD - breaks when the host shell is PowerShell
-command = `export TRELLIS_CONTEXT_ID=${shellQuote(contextKey)}; ${command}`;
+command = `export POLYGON_CONTEXT_ID=${shellQuote(contextKey)}; ${command}`;
 
 // GOOD - shell-dialect-aware command prefix
 const prefix = process.platform === "win32" && !isWindowsPosixShell(process.env)
-  ? `$env:TRELLIS_CONTEXT_ID = ${powershellQuote(contextKey)}; `
-  : `export TRELLIS_CONTEXT_ID=${shellQuote(contextKey)}; `;
+  ? `$env:POLYGON_CONTEXT_ID = ${powershellQuote(contextKey)}; `
+  : `export POLYGON_CONTEXT_ID=${shellQuote(contextKey)}; `;
 command = `${prefix}${command}`;
 ```
 
@@ -279,7 +279,7 @@ make the intended decision. Otherwise a transient sandbox/network failure hides
 the hint for the rest of the session.
 
 **Rule 2**: If a local command can provide the needed value, try it with a short
-timeout and captured output. For example, `trellis --version` already runs the
+timeout and captured output. For example, `polygon --version` already runs the
 CLI's version comparison logic and can support an actionable update prompt
 without duplicating npm registry parsing.
 
@@ -354,7 +354,7 @@ When making platform-related changes, check **all these locations**:
 
 ### Code Locations
 - [ ] `src/templates/` - Template files for new projects
-- [ ] `.trellis/scripts/` - Project's own scripts (if self-hosting)
+- [ ] `.polygon/scripts/` - Project's own scripts (if self-hosting)
 - [ ] `dist/` - Built output (rebuild after changes)
 
 ### Search Pattern
@@ -528,7 +528,7 @@ subprocess.run(["./script.py"])  # FileNotFoundError
 
 ```
 src/templates/script.py  ← Updated
-.trellis/scripts/script.py  ← Forgot to sync!
+.polygon/scripts/script.py  ← Forgot to sync!
 ```
 
 ### 4. "Python 3 is always python3"

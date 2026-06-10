@@ -1,10 +1,10 @@
 /**
- * Scrubbers for structured config files during `trellis uninstall`.
+ * Scrubbers for structured config files during `polygon uninstall`.
  *
  * Each scrubber takes the file content (and any context it needs) and returns
  * `{ content, fullyEmpty }`:
  * - `content` is the post-scrub text to write back if the file should remain.
- * - `fullyEmpty` is true when, after stripping every trellis-managed value,
+ * - `fullyEmpty` is true when, after stripping every polygon-managed value,
  *   nothing meaningful is left. The caller deletes the file in that case.
  *
  * Manifest path matching (for hooks.json scrubbers) uses substring containment
@@ -121,7 +121,7 @@ export function scrubHooksJson(
       if (mode === "flat") {
         const cmd = getEntryCommand(entry);
         if (cmd !== null && commandMatchesDeletedPath(cmd, deletedPaths)) {
-          continue; // drop trellis entry
+          continue; // drop polygon entry
         }
         filteredEvent.push(entry);
       } else {
@@ -224,20 +224,20 @@ export function scrubOpencodePackageJson(content: string): ScrubResult {
  * The `extensions`/`skills`/`prompts` arrays are paths relative to `.pi/`. We
  * remove the exact entries that the Pi configurator emits.
  */
-const PI_TRELLIS_EXTENSION = "./extensions/trellis/index.ts";
-const PI_TRELLIS_SKILLS = "./skills";
-const PI_TRELLIS_PROMPTS = "./prompts";
+const PI_POLYGON_EXTENSION = "./extensions/polygon/index.ts";
+const PI_POLYGON_SKILLS = "./skills";
+const PI_POLYGON_PROMPTS = "./prompts";
 const PI_SUBAGENTS_PACKAGE = "npm:pi-subagents";
 
-function isTrellisPiEntry(value: unknown, target: string): boolean {
+function isPolygonPiEntry(value: unknown, target: string): boolean {
   return typeof value === "string" && value === target;
 }
 
 /**
  * Scrub `.pi/settings.json`:
- * - drop `enableSkillCommands` (trellis-flagged)
- * - remove trellis entries from `extensions`/`skills`/`prompts` arrays
- * - remove trellis-managed `packages["npm:pi-subagents"]` isolation override
+ * - drop `enableSkillCommands` (polygon-flagged)
+ * - remove polygon entries from `extensions`/`skills`/`prompts` arrays
+ * - remove polygon-managed `packages["npm:pi-subagents"]` isolation override
  * - drop arrays that become empty
  */
 export function scrubPiSettings(content: string): ScrubResult {
@@ -258,14 +258,14 @@ export function scrubPiSettings(content: string): ScrubResult {
   }
 
   const arrayCleanups: [string, string][] = [
-    ["extensions", PI_TRELLIS_EXTENSION],
-    ["skills", PI_TRELLIS_SKILLS],
-    ["prompts", PI_TRELLIS_PROMPTS],
+    ["extensions", PI_POLYGON_EXTENSION],
+    ["skills", PI_POLYGON_SKILLS],
+    ["prompts", PI_POLYGON_PROMPTS],
   ];
   for (const [key, target] of arrayCleanups) {
     const arr = root[key];
     if (!Array.isArray(arr)) continue;
-    const filtered = arr.filter((v) => !isTrellisPiEntry(v, target));
+    const filtered = arr.filter((v) => !isPolygonPiEntry(v, target));
     if (filtered.length === 0) {
       // eslint-disable-next-line @typescript-eslint/no-dynamic-delete
       delete root[key];
@@ -305,7 +305,7 @@ export function scrubPiSettings(content: string): ScrubResult {
 /**
  * Scrub `.codex/config.toml`.
  *
- * The current trellis-emitted file has two distinct chunks:
+ * The current polygon-emitted file has two distinct chunks:
  * 1. The line `project_doc_fallback_filenames = ["AGENTS.md"]`
  * 2. A multi-line comment block that begins with the marker
  *    `# NOTE: Polygon's SessionStart + UserPromptSubmit hooks require opt-in.`
@@ -315,15 +315,15 @@ export function scrubPiSettings(content: string): ScrubResult {
  *
  * Strategy: line-based removal. We strip:
  *  - the `project_doc_fallback_filenames = ...` line
- *  - any line that is *only* a comment introduced by trellis (the entire file
+ *  - any line that is *only* a comment introduced by polygon (the entire file
  *    as shipped is comments + that one assignment)
  *  - blank lines that surrounded those removals
  *
- * If the user added their own non-trellis lines, they are preserved as-is.
+ * If the user added their own non-polygon lines, they are preserved as-is.
  * "Fully empty" = post-scrub content has no non-whitespace characters.
  */
 export function scrubCodexConfigToml(content: string): ScrubResult {
-  const trellisCommentMarkers = [
+  const polygonCommentMarkers = [
     "Project-scoped Codex defaults for Polygon workflows.",
     "Codex loads this after ~/.codex/config.toml when you work in this project.",
     "Keep AGENTS.md as the primary project instruction file.",
@@ -337,17 +337,17 @@ export function scrubCodexConfigToml(content: string): ScrubResult {
     "be injected into Codex sessions.",
   ];
 
-  // A comment line is "trellis-known" if its content (after `#` and spaces)
+  // A comment line is "polygon-known" if its content (after `#` and spaces)
   // matches one of the known marker strings exactly OR is an empty `#` line.
-  function isTrellisCommentLine(line: string): boolean {
+  function isPolygonCommentLine(line: string): boolean {
     const trimmed = line.trim();
     if (!trimmed.startsWith("#")) return false;
     const inner = trimmed.replace(/^#+\s?/, "").trim();
-    if (inner.length === 0) return true; // bare `#` line inside trellis block
-    return trellisCommentMarkers.some((m) => inner === m);
+    if (inner.length === 0) return true; // bare `#` line inside polygon block
+    return polygonCommentMarkers.some((m) => inner === m);
   }
 
-  function isTrellisAssignment(line: string): boolean {
+  function isPolygonAssignment(line: string): boolean {
     return /^\s*project_doc_fallback_filenames\s*=/.test(line);
   }
 
@@ -355,7 +355,7 @@ export function scrubCodexConfigToml(content: string): ScrubResult {
   let prevWasBlank = true; // start-of-file counts as blank for collapsing
 
   for (const rawLine of content.split(/\r?\n/)) {
-    if (isTrellisAssignment(rawLine) || isTrellisCommentLine(rawLine)) {
+    if (isPolygonAssignment(rawLine) || isPolygonCommentLine(rawLine)) {
       continue; // drop
     }
     const isBlank = rawLine.trim().length === 0;

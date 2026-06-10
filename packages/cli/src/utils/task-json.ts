@@ -1,9 +1,9 @@
 /**
  * Canonical task.json shape — single source of truth shared by all TS writers.
  *
- * The runtime Python writer is `.trellis/scripts/common/task_store.py` in
+ * The runtime Python writer is `.polygon/scripts/common/task_store.py` in
  * `cmd_create` (lines ~147-172). This TS factory mirrors that 24-field shape
- * so bootstrap tasks (trellis init) and migration tasks (trellis update
+ * so bootstrap tasks (polygon init) and migration tasks (polygon update
  * --migrate) produce structurally identical task.json files.
  *
  * Field names, order, and null defaults match task_store.py exactly.

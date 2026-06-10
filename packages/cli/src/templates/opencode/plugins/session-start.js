@@ -6,7 +6,7 @@
  * Uses OpenCode's chat.message hook directly so the context persists in history.
  */
 
-import { TrellisContext, contextCollector, debugLog, isTrellisSubagent } from "../lib/trellis-context.js"
+import { PolygonContext, contextCollector, debugLog, isPolygonSubagent } from "../lib/polygon-context.js"
 import {
   buildSessionContext,
   hasPersistedInjectedContext,
@@ -15,7 +15,7 @@ import {
 
 // OpenCode 1.2.x expects plugins to be factory functions (see inject-subagent-context.js comment).
 export default async ({ directory, client }) => {
-  const ctx = new TrellisContext(directory)
+  const ctx = new PolygonContext(directory)
   debugLog("session", "Plugin loaded, directory:", directory)
 
   return {
@@ -46,13 +46,13 @@ export default async ({ directory, client }) => {
         // Skip Polygon sub-agent turns — sub-agent context is injected by
         // `inject-subagent-context.js` on the parent's tool.execute.before;
         // re-injecting the main-session SessionStart here would drown that.
-        if (isTrellisSubagent(input)) {
-          debugLog("session", "Skipping trellis subagent turn:", agent)
+        if (isPolygonSubagent(input)) {
+          debugLog("session", "Skipping polygon subagent turn:", agent)
           return
         }
 
-        if (process.env.TRELLIS_HOOKS === "0" || process.env.TRELLIS_DISABLE_HOOKS === "1") {
-          debugLog("session", "Skipping - TRELLIS_HOOKS disabled")
+        if (process.env.POLYGON_HOOKS === "0" || process.env.POLYGON_DISABLE_HOOKS === "1") {
+          debugLog("session", "Skipping - POLYGON_HOOKS disabled")
           return
         }
 

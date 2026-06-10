@@ -1,7 +1,7 @@
 /**
  * Shared hook templates — platform-independent Python hook scripts.
  *
- * These scripts read only from .trellis/ paths (JSONL, prd.md, spec/) and
+ * These scripts read only from .polygon/ paths (JSONL, prd.md, spec/) and
  * have no platform-specific placeholders. They can be written as-is to any
  * platform's hooks directory.
  */
@@ -44,7 +44,7 @@ export type SharedHookPlatform =
 /**
  * Which shared hooks each platform actually invokes. Single source of truth
  * for shared-hook distribution — both `writeSharedHooks` (runtime install)
- * and `collectSharedHooks` (`trellis update` diff) read from this table.
+ * and `collectSharedHooks` (`polygon update` diff) read from this table.
  *
  * Routing rules encoded here:
  * - `session-start.py` — shipped by every platform with a SessionStart

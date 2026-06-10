@@ -1,14 +1,12 @@
 {
   "name": "@subaru486/polygon",
-  "version": "0.6.0",
+  "version": "0.7.0",
   "description": "Polygon — a slim fork of Trellis: persistent specs, tasks and multi-LLM activity logs for AI coding, with lightweight context injection and inline-first workflow.",
   "type": "module",
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",
   "bin": {
-    "polygon": "./bin/trellis.js",
-    "trellis": "./bin/trellis.js",
-    "tl": "./bin/trellis.js"
+    "polygon": "./bin/polygon.js"
   },
   "publishConfig": {
     "access": "public"
@@ -43,11 +41,11 @@
     "workflow",
     "cursor",
     "claude",
-    "iflow",
     "cli",
     "developer-tools",
     "agent",
     "memory",
+    "polygon",
     "trellis"
   ],
   "author": "Mindfold LLC",

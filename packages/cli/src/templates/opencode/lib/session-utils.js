@@ -3,7 +3,7 @@ import { existsSync, readFileSync, readdirSync, statSync } from "fs"
 import { basename, join } from "path"
 import { execFileSync } from "child_process"
 import { platform } from "os"
-import { debugLog } from "./trellis-context.js"
+import { debugLog } from "./polygon-context.js"
 
 const PYTHON_CMD = platform() === "win32" ? "python" : "python3"
 
@@ -44,7 +44,7 @@ function getTaskStatus(ctx, platformInput = null) {
   const taskDir = ctx.resolveTaskDir(taskRef)
 
   if (active.stale || !taskDir || !existsSync(taskDir)) {
-    return `Status: STALE POINTER\nTask: ${taskRef}\nSource: ${active.source}\nNext: Task directory not found. Run: python3 ./.trellis/scripts/task.py finish`
+    return `Status: STALE POINTER\nTask: ${taskRef}\nSource: ${active.source}\nNext: Task directory not found. Run: python3 ./.polygon/scripts/task.py finish`
   }
 
   let taskData = {}
@@ -62,7 +62,7 @@ function getTaskStatus(ctx, platformInput = null) {
 
   if (taskStatus === "completed") {
     const dirName = basename(taskDir)
-    return `Status: COMPLETED\nTask: ${taskTitle}\nSource: ${active.source}\nNext: Archive with \`python3 ./.trellis/scripts/task.py archive ${dirName}\` or start a new task`
+    return `Status: COMPLETED\nTask: ${taskTitle}\nSource: ${active.source}\nNext: Archive with \`python3 ./.polygon/scripts/task.py archive ${dirName}\` or start a new task`
   }
 
   let hasContext = false
@@ -87,9 +87,9 @@ function getTaskStatus(ctx, platformInput = null) {
   return (
     `Status: READY\nTask: ${taskTitle}\n` +
     `Source: ${active.source}\n` +
-    "Next required action: dispatch `trellis-implement` per Phase 2.1. " +
+    "Next required action: dispatch `polygon-implement` per Phase 2.1. " +
     "For agent-capable platforms, the default is to NOT edit code in the main session. " +
-    "After implementation, dispatch `trellis-check` per Phase 2.2 before reporting completion.\n" +
+    "After implementation, dispatch `polygon-check` per Phase 2.2 before reporting completion.\n" +
     "User override (per-turn escape hatch): if the user's CURRENT message explicitly tells the " +
     "main session to handle it directly (\"你直接改\" / \"别派 sub-agent\" / \"main session 写就行\" / " +
     "\"do it inline\" / \"不用 sub-agent\"), honor it for this turn and edit code directly. " +
@@ -97,8 +97,8 @@ function getTaskStatus(ctx, platformInput = null) {
   )
 }
 
-function loadTrellisConfig(directory, contextKey = null) {
-  const scriptPath = join(directory, ".trellis", "scripts", "get_context.py")
+function loadPolygonConfig(directory, contextKey = null) {
+  const scriptPath = join(directory, ".polygon", "scripts", "get_context.py")
   if (!existsSync(scriptPath)) {
     return { isMonorepo: false, packages: {}, specScope: null, activeTaskPackage: null, defaultPackage: null }
   }
@@ -110,7 +110,7 @@ function loadTrellisConfig(directory, contextKey = null) {
       stdio: ["pipe", "pipe", "pipe"],
       env: {
         ...process.env,
-        ...(contextKey ? { TRELLIS_CONTEXT_ID: contextKey } : {}),
+        ...(contextKey ? { POLYGON_CONTEXT_ID: contextKey } : {}),
       },
     })
     const data = JSON.parse(output)
@@ -129,7 +129,7 @@ function loadTrellisConfig(directory, contextKey = null) {
       defaultPackage: data.defaultPackage || null,
     }
   } catch (e) {
-    debugLog("session", "loadTrellisConfig error:", e.message)
+    debugLog("session", "loadPolygonConfig error:", e.message)
     return { isMonorepo: false, packages: {}, specScope: null, activeTaskPackage: null, defaultPackage: null }
   }
 }
@@ -139,7 +139,7 @@ function checkLegacySpec(directory, config) {
     return null
   }
 
-  const specDir = join(directory, ".trellis", "spec")
+  const specDir = join(directory, ".polygon", "spec")
   if (!existsSync(specDir)) return null
 
   let hasLegacy = false
@@ -203,20 +203,20 @@ function resolveSpecScope(config) {
 
 export function buildSessionContext(ctx, platformInput = null) {
   const directory = ctx.directory
-  const trellisDir = join(directory, ".trellis")
+  const polygonDir = join(directory, ".polygon")
   const contextKey = typeof ctx.getContextKey === "function"
     ? ctx.getContextKey(platformInput)
     : null
 
-  const config = loadTrellisConfig(directory, contextKey)
+  const config = loadPolygonConfig(directory, contextKey)
   const allowedPkgs = resolveSpecScope(config)
 
   const parts = []
 
-  parts.push(`<trellis-context>
+  parts.push(`<polygon-context>
 You are starting a new session in a Polygon-managed project.
 Read and follow all instructions below carefully.
-</trellis-context>`)
+</polygon-context>`)
   parts.push(FIRST_REPLY_NOTICE)
 
   const legacyWarning = checkLegacySpec(directory, config)
@@ -224,7 +224,7 @@ Read and follow all instructions below carefully.
     parts.push(`<migration-warning>\n${legacyWarning}\n</migration-warning>`)
   }
 
-  const contextScript = join(trellisDir, "scripts", "get_context.py")
+  const contextScript = join(polygonDir, "scripts", "get_context.py")
   if (existsSync(contextScript)) {
     const output = ctx.runScript(contextScript, undefined, contextKey)
     if (output) {
@@ -234,12 +234,12 @@ Read and follow all instructions below carefully.
     }
   }
 
-  const workflowContent = ctx.readProjectFile(".trellis/workflow.md")
+  const workflowContent = ctx.readProjectFile(".polygon/workflow.md")
   if (workflowContent) {
     const allLines = workflowContent.split("\n")
     const overviewLines = [
       "# Development Workflow — Section Index",
-      "Full guide: .trellis/workflow.md  (read on demand)",
+      "Full guide: .polygon/workflow.md  (read on demand)",
       "",
       "## Table of Contents",
     ]
@@ -277,11 +277,11 @@ Read and follow all instructions below carefully.
     "automatically via `{task}/implement.jsonl` / `check.jsonl`. You do NOT " +
     "need to read these indexes yourself.\n" +
     "- For agent-capable platforms, do NOT edit code directly in the main " +
-    "session; dispatch `trellis-implement` and `trellis-check` so JSONL " +
+    "session; dispatch `polygon-implement` and `polygon-check` so JSONL " +
     "context is loaded by the sub-agents.\n"
   )
 
-  const specDir = join(directory, ".trellis", "spec")
+  const specDir = join(directory, ".polygon", "spec")
 
   const guidesIndex = join(specDir, "guides", "index.md")
   if (existsSync(guidesIndex)) {
@@ -308,7 +308,7 @@ Read and follow all instructions below carefully.
 
         const indexFile = join(specDir, sub, "index.md")
         if (existsSync(indexFile)) {
-          paths.push(`.trellis/spec/${sub}/index.md`)
+          paths.push(`.polygon/spec/${sub}/index.md`)
         } else {
           if (allowedPkgs !== null && !allowedPkgs.has(sub)) continue
           try {
@@ -322,7 +322,7 @@ Read and follow all instructions below carefully.
             for (const layer of nested) {
               const nestedIndex = join(specDir, sub, layer, "index.md")
               if (existsSync(nestedIndex)) {
-                paths.push(`.trellis/spec/${sub}/${layer}/index.md`)
+                paths.push(`.polygon/spec/${sub}/${layer}/index.md`)
               }
             }
           } catch {
@@ -345,7 +345,7 @@ Read and follow all instructions below carefully.
 
   parts.push(
     "Discover more via: " +
-    "`python3 ./.trellis/scripts/get_context.py --mode packages`"
+    "`python3 ./.polygon/scripts/get_context.py --mode packages`"
   )
   parts.push("</guidelines>")
 
@@ -361,17 +361,17 @@ If a task is READY, execute its Next required action without asking whether to c
   return parts.join("\n\n")
 }
 
-function getTrellisMetadata(metadata) {
+function getPolygonMetadata(metadata) {
   if (!metadata || typeof metadata !== "object") {
     return {}
   }
 
-  const trellis = metadata.trellis
-  if (!trellis || typeof trellis !== "object") {
+  const polygon = metadata.polygon
+  if (!polygon || typeof polygon !== "object") {
     return {}
   }
 
-  return trellis
+  return polygon
 }
 
 function markPartAsSessionStart(part) {
@@ -380,8 +380,8 @@ function markPartAsSessionStart(part) {
     : {}
   part.metadata = {
     ...metadata,
-    trellis: {
-      ...getTrellisMetadata(metadata),
+    polygon: {
+      ...getPolygonMetadata(metadata),
       sessionStart: true,
     },
   }
@@ -392,10 +392,10 @@ function hasSessionStartMarker(part) {
     return false
   }
 
-  return getTrellisMetadata(part.metadata).sessionStart === true
+  return getPolygonMetadata(part.metadata).sessionStart === true
 }
 
-export function hasInjectedTrellisContext(messages) {
+export function hasInjectedPolygonContext(messages) {
   if (!Array.isArray(messages)) {
     return false
   }
@@ -416,7 +416,7 @@ export async function hasPersistedInjectedContext(client, directory, sessionID) 
       query: { directory },
       throwOnError: true,
     })
-    return hasInjectedTrellisContext(response.data || [])
+    return hasInjectedPolygonContext(response.data || [])
   } catch (error) {
     debugLog(
       "session",

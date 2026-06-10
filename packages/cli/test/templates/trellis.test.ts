@@ -17,13 +17,13 @@ import {
   workflowMdTemplate,
   gitignoreTemplate,
   getAllScripts,
-} from "../../src/templates/trellis/index.js";
+} from "../../src/templates/polygon/index.js";
 
 // =============================================================================
 // Template Constants — module-level string exports
 // =============================================================================
 
-describe("trellis template constants", () => {
+describe("polygon template constants", () => {
   const allTemplates = {
     scriptsInit,
     commonInit,
@@ -95,7 +95,7 @@ describe("trellis template constants", () => {
     const block = inProgressBreadcrumb();
     expect(block).toContain("Active task:");
     expect(block).toContain("all platforms, all sub-agents");
-    expect(block).toContain("trellis-research");
+    expect(block).toContain("polygon-research");
   });
 
   it("[issue-237] workflow.md in_progress breadcrumb self-exempts implement/check sub-agents", () => {

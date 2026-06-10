@@ -8,7 +8,7 @@ Initialize a Polygon-managed development session. This platform has no session-s
 Identity, git status, current task, active tasks, journal location.
 
 ```bash
-{{PYTHON_CMD}} ./.trellis/scripts/get_context.py
+{{PYTHON_CMD}} ./.polygon/scripts/get_context.py
 ```
 
 If this output includes a line beginning `Polygon update available:`, copy the full line verbatim when summarizing session context. Do not shorten operational command hints.
@@ -17,18 +17,18 @@ If this output includes a line beginning `Polygon update available:`, copy the f
 Phase Index + skill routing table + DO-NOT-skip rules.
 
 ```bash
-{{PYTHON_CMD}} ./.trellis/scripts/get_context.py --mode phase
+{{PYTHON_CMD}} ./.polygon/scripts/get_context.py --mode phase
 ```
 
-Full guide in `.trellis/workflow.md` (read on demand).
+Full guide in `.polygon/workflow.md` (read on demand).
 
 ## Step 3: Guideline indexes
 Discover packages + spec layers, then read each relevant index file.
 
 ```bash
-{{PYTHON_CMD}} ./.trellis/scripts/get_context.py --mode packages
-cat .trellis/spec/guides/index.md
-cat .trellis/spec/<package>/<layer>/index.md   # for each relevant layer
+{{PYTHON_CMD}} ./.polygon/scripts/get_context.py --mode packages
+cat .polygon/spec/guides/index.md
+cat .polygon/spec/<package>/<layer>/index.md   # for each relevant layer
 ```
 
 Index files list the specific guideline docs to read when you actually start coding.
@@ -38,10 +38,10 @@ From Step 1 you know the current task. Check the task directory:
 
 - **Active task + `prd.md` exists** → Phase 2 step 2.1. Load the step detail:
   ```bash
-  {{PYTHON_CMD}} ./.trellis/scripts/get_context.py --mode phase --step 2.1 --platform {{CLI_FLAG}}
+  {{PYTHON_CMD}} ./.polygon/scripts/get_context.py --mode phase --step 2.1 --platform {{CLI_FLAG}}
   ```
-- **Active task + no `prd.md`** → Phase 1.1. Load the `trellis-brainstorm` skill.
-- **No active task** → when the user describes multi-step work, load the `trellis-brainstorm` skill to clarify requirements, then create a task via `task.py create`. For simple one-off questions or trivial edits, skip this and just answer directly — no task needed.
+- **Active task + no `prd.md`** → Phase 1.1. Load the `polygon-brainstorm` skill.
+- **No active task** → when the user describes multi-step work, load the `polygon-brainstorm` skill to clarify requirements, then create a task via `task.py create`. For simple one-off questions or trivial edits, skip this and just answer directly — no task needed.
 
 ---
 
@@ -49,10 +49,10 @@ From Step 1 you know the current task. Check the task directory:
 
 | User intent | Skill |
 |---|---|
-| New feature / unclear requirements | `trellis-brainstorm` |
-| About to write code | `trellis-before-dev` |
-| Done coding / quality check | `trellis-check` |
-| Stuck / fixed same bug multiple times | `trellis-break-loop` |
-| Learned something worth capturing | `trellis-update-spec` |
+| New feature / unclear requirements | `polygon-brainstorm` |
+| About to write code | `polygon-before-dev` |
+| Done coding / quality check | `polygon-check` |
+| Stuck / fixed same bug multiple times | `polygon-break-loop` |
+| Learned something worth capturing | `polygon-update-spec` |
 
-Full rules + anti-rationalization table in `.trellis/workflow.md`.
+Full rules + anti-rationalization table in `.polygon/workflow.md`.

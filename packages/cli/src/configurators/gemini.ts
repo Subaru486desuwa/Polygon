@@ -18,8 +18,8 @@ import {
 
 /**
  * Configure Gemini CLI (pull-based class-2 platform):
- * - commands/trellis/ — start + finish-work as TOML slash commands
- * - .agents/skills/trellis-{name}/SKILL.md — 5 auto-triggered shared skills
+ * - commands/polygon/ — start + finish-work as TOML slash commands
+ * - .agents/skills/polygon-{name}/SKILL.md — 5 auto-triggered shared skills
  *   written to the cross-platform `.agents/skills/` workspace alias (Gemini
  *   CLI 0.40+ reads it natively; previously `.gemini/skills/` was used,
  *   which collided with Codex's identical write target and caused
@@ -35,7 +35,7 @@ export async function configureGemini(cwd: string): Promise<void> {
   const ctx = config.templateContext;
   const configRoot = path.join(cwd, config.configDir);
 
-  const commandsDir = path.join(configRoot, "commands", "trellis");
+  const commandsDir = path.join(configRoot, "commands", "polygon");
   ensureDir(commandsDir);
   for (const cmd of resolveCommands(ctx)) {
     const toml = `description = "Polygon: ${cmd.name}"\n\nprompt = """\n${cmd.content}\n"""\n`;

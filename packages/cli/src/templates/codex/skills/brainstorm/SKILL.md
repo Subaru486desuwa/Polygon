@@ -9,7 +9,7 @@ Turn a vague request into a prd.md the implementation can run on. Depth scales w
 
 ## Principles
 
-1. **Task-first** — make sure a task exists before Q&A so ideas land in files, not chat: `python3 ./.trellis/scripts/task.py create "<short goal>" --slug <name>` (no date prefix in the slug). Seed `prd.md` immediately with what you already know.
+1. **Task-first** — make sure a task exists before Q&A so ideas land in files, not chat: `python3 ./.polygon/scripts/task.py create "<short goal>" --slug <name>` (no date prefix in the slug). Seed `prd.md` immediately with what you already know.
 2. **Action before asking** — if the answer is derivable from repo code, configs, docs, or quick research, fetch it yourself and write it into the PRD. Ask the user only **blocking** questions (can't proceed without them) and **preference** questions (multiple valid choices). Never ask meta questions ("should I search?", "can you paste the code?").
 3. **Options over open questions** — for preference decisions, research first, then present 2–3 concrete approaches with trade-offs and a recommendation. Don't ask the user to invent options.
 4. **Persist research** — findings go to `{TASK_DIR}/research/<topic>.md`, one file per topic; the PRD references them instead of duplicating content. Research inline (the Codex default) — files are the contract.

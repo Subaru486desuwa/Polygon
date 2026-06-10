@@ -1,6 +1,6 @@
 # Update Spec — Capture What You Learned
 
-When a task surfaces knowledge worth keeping, write it into `.trellis/spec/` so future sessions don't relearn it. Nothing new? Skip this skill entirely.
+When a task surfaces knowledge worth keeping, write it into `.polygon/spec/` so future sessions don't relearn it. Nothing new? Skip this skill entirely.
 
 ## What's worth capturing
 
@@ -13,8 +13,8 @@ When a task surfaces knowledge worth keeping, write it into `.trellis/spec/` so 
 
 ## Spec vs guide
 
-- `.trellis/spec/<layer>/*.md` — **how to implement safely**: signatures, contracts, testable error behavior. Concrete over principled; an executable contract beats a paragraph of philosophy.
-- `.trellis/spec/guides/*.md` — **what to think about before writing**: short checklists that point to specs, never duplicating their detail.
+- `.polygon/spec/<layer>/*.md` — **how to implement safely**: signatures, contracts, testable error behavior. Concrete over principled; an executable contract beats a paragraph of philosophy.
+- `.polygon/spec/guides/*.md` — **what to think about before writing**: short checklists that point to specs, never duplicating their detail.
 
 Decision rule: "how to write the code" → layer spec; "what to consider first" → guides.
 

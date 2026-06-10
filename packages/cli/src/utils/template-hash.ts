@@ -176,6 +176,34 @@ export function renameHash(
 }
 
 /**
+ * Rewrite the leading path segment of every hash key from `oldPrefix` to
+ * `newPrefix` (e.g. ".trellis/" → ".polygon/"). Used by the update command's
+ * legacy-directory migration after the workflow dir is renamed, so the hash
+ * manifest keys keep pointing at real files. Keys that don't start with
+ * `oldPrefix` are left untouched. No-op if nothing matches.
+ */
+export function rewriteHashPrefix(
+  cwd: string,
+  oldPrefix: string,
+  newPrefix: string,
+): void {
+  const hashes = loadHashes(cwd);
+  let changed = false;
+  const rewritten: TemplateHashes = {};
+  for (const [key, value] of Object.entries(hashes)) {
+    if (key.startsWith(oldPrefix)) {
+      rewritten[newPrefix + key.slice(oldPrefix.length)] = value;
+      changed = true;
+    } else {
+      rewritten[key] = value;
+    }
+  }
+  if (changed) {
+    saveHashes(cwd, rewritten);
+  }
+}
+
+/**
  * Check if a template file has been modified by the user
  *
  * @param cwd - Working directory
@@ -258,7 +286,7 @@ export function getModificationStatus(
 }
 
 /**
- * Patterns to exclude from hash tracking (only applied to the .trellis/ walk).
+ * Patterns to exclude from hash tracking (only applied to the .polygon/ walk).
  */
 const EXCLUDE_FROM_HASH = [
   ".template-hashes.json", // Hash file itself
@@ -268,7 +296,7 @@ const EXCLUDE_FROM_HASH = [
   "workspace/", // Workspace files (user data)
   "tasks/", // Task files (user data)
   ".current-task", // Current task marker (file, not directory)
-  ".trellis/spec/", // User-customized spec files
+  `${DIR_NAMES.WORKFLOW}/spec/`, // User-customized spec files
   ".backup-", // Backup directories
 ];
 
@@ -320,7 +348,7 @@ function collectFiles(cwd: string, dir: string): string[] {
 /** Options accepted by {@link initializeHashes}. */
 export interface InitializeHashesOptions {
   /**
-   * POSIX-style relative paths trellis actually wrote during the init run
+   * POSIX-style relative paths polygon actually wrote during the init run
    * (captured via `startRecordingWrites` in `file-writer.ts`). Only these
    * paths are hashed for the platform/root-level coverage; anything else
    * under `.codex/` / `.claude/` / etc. is left alone, even if it exists
@@ -347,9 +375,9 @@ export interface InitializeHashesOptions {
  * where a blind directory walk of `.codex/` / `.claude/` swept up
  * user-owned runtime data (chat history, session JSONLs).
  *
- * `.trellis/` is still walked recursively (with `EXCLUDE_FROM_HASH`) because
- * uninstall removes `.trellis/` wholesale via `rm -rf` regardless of manifest
- * content — accuracy there doesn't affect data-loss, only `trellis update`
+ * `.polygon/` is still walked recursively (with `EXCLUDE_FROM_HASH`) because
+ * uninstall removes `.polygon/` wholesale via `rm -rf` regardless of manifest
+ * content — accuracy there doesn't affect data-loss, only `polygon update`
  * 3-way-merge fidelity (preserved by the existing walk).
  *
  * @returns Number of files hashed in the final manifest.
@@ -364,8 +392,11 @@ export function initializeHashes(
   // Platform + root files: hash only paths actually written this run.
   if (trackedPaths) {
     for (const relativePath of trackedPaths) {
-      // `.trellis/` paths are handled by the walk below — don't double-track.
-      if (relativePath.startsWith(".trellis/") || relativePath === ".trellis") {
+      // `.polygon/` paths are handled by the walk below — don't double-track.
+      if (
+        relativePath.startsWith(`${DIR_NAMES.WORKFLOW}/`) ||
+        relativePath === DIR_NAMES.WORKFLOW
+      ) {
         continue;
       }
       const fullPath = path.join(cwd, ...relativePath.split("/"));
@@ -379,11 +410,11 @@ export function initializeHashes(
     }
   }
 
-  // .trellis/ workflow tree: still walked recursively. Accuracy here is for
-  // `trellis update`'s 3-way merge of workflow.md / config.yaml / scripts;
-  // uninstall removes .trellis/ wholesale so it does not matter for the
+  // .polygon/ workflow tree: still walked recursively. Accuracy here is for
+  // `polygon update`'s 3-way merge of workflow.md / config.yaml / scripts;
+  // uninstall removes .polygon/ wholesale so it does not matter for the
   // data-loss bug this contract addresses.
-  const files = collectFiles(cwd, ".trellis");
+  const files = collectFiles(cwd, DIR_NAMES.WORKFLOW);
   for (const relativePath of files) {
     const fullPath = path.join(cwd, relativePath);
     try {

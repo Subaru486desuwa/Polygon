@@ -12,7 +12,7 @@ import { getAllAgents } from "../templates/kiro/index.js";
 
 /**
  * Configure Kiro Code:
- * - skills/trellis-{name}/SKILL.md — all templates as auto-triggered skills
+ * - skills/polygon-{name}/SKILL.md — all templates as auto-triggered skills
  * - agents/{name}.json — sub-agent definitions (JSON, with hooks embedded)
  * - hooks/*.py — shared hook scripts (referenced by agent JSON hooks)
  */

@@ -11,7 +11,7 @@ import {
 /**
  * Configure Windsurf:
  * - workflows/ — start + finish-work as slash commands
- * - skills/trellis-{name}/SKILL.md — other 5 as auto-triggered skills
+ * - skills/polygon-{name}/SKILL.md — other 5 as auto-triggered skills
  */
 export async function configureWindsurf(cwd: string): Promise<void> {
   const ctx = AI_TOOLS.windsurf.templateContext;
@@ -20,7 +20,7 @@ export async function configureWindsurf(cwd: string): Promise<void> {
   ensureDir(workflowsDir);
   for (const cmd of resolveCommands(ctx)) {
     await writeFile(
-      path.join(workflowsDir, `trellis-${cmd.name}.md`),
+      path.join(workflowsDir, `polygon-${cmd.name}.md`),
       cmd.content,
     );
   }

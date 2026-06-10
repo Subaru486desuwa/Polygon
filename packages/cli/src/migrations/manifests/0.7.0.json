@@ -1,0 +1,949 @@
+{
+  "version": "0.7.0",
+  "description": "Polygon rebrand: .trellis/ → .polygon/ and all trellis-* skills/agents/commands → polygon-*.",
+  "breaking": true,
+  "recommendMigrate": true,
+  "changelog": "**Polygon 0.7.0 — full rebrand.** The workflow directory and every managed asset drop the `trellis` name.\n\n- Workflow dir `.trellis/` → `.polygon/` (renamed in place by `polygon update`, before anything else — your tasks/spec/workspace/journal move with it, zero data loss).\n- All skills/agents/commands `trellis-*` → `polygon-*` across every platform (`.claude/`, `.codex/`, `.agents/`, `.cursor/`, …).\n- Env vars `TRELLIS_*` → `POLYGON_*`; AGENTS.md managed-block markers `<!-- TRELLIS:START/END -->` → `<!-- POLYGON:START/END -->`.\n- CLI is `polygon` only; the `trellis` / `tl` aliases are gone.\n\nUpstream-merge compatibility is intentionally dropped from this release onward.",
+  "migrations": [
+    {
+      "type": "rename-dir",
+      "from": ".agent/skills/trellis-before-dev",
+      "to": ".agent/skills/polygon-before-dev",
+      "description": "Rebrand asset trellis-before-dev → polygon-before-dev"
+    },
+    {
+      "type": "rename-dir",
+      "from": ".agent/skills/trellis-brainstorm",
+      "to": ".agent/skills/polygon-brainstorm",
+      "description": "Rebrand asset trellis-brainstorm → polygon-brainstorm"
+    },
+    {
+      "type": "rename-dir",
+      "from": ".agent/skills/trellis-break-loop",
+      "to": ".agent/skills/polygon-break-loop",
+      "description": "Rebrand asset trellis-break-loop → polygon-break-loop"
+    },
+    {
+      "type": "rename-dir",
+      "from": ".agent/skills/trellis-check",
+      "to": ".agent/skills/polygon-check",
+      "description": "Rebrand asset trellis-check → polygon-check"
+    },
+    {
+      "type": "rename-dir",
+      "from": ".agent/skills/trellis-meta",
+      "to": ".agent/skills/polygon-meta",
+      "description": "Rebrand asset trellis-meta → polygon-meta"
+    },
+    {
+      "type": "rename-dir",
+      "from": ".agent/skills/trellis-spec-bootstrap",
+      "to": ".agent/skills/polygon-spec-bootstrap",
+      "description": "Rebrand asset trellis-spec-bootstrap → polygon-spec-bootstrap"
+    },
+    {
+      "type": "rename-dir",
+      "from": ".agent/skills/trellis-update-spec",
+      "to": ".agent/skills/polygon-update-spec",
+      "description": "Rebrand asset trellis-update-spec → polygon-update-spec"
+    },
+    {
+      "type": "rename-dir",
+      "from": ".agents/skills/trellis-before-dev",
+      "to": ".agents/skills/polygon-before-dev",
+      "description": "Rebrand asset trellis-before-dev → polygon-before-dev"
+    },
+    {
+      "type": "rename-dir",
+      "from": ".agents/skills/trellis-brainstorm",
+      "to": ".agents/skills/polygon-brainstorm",
+      "description": "Rebrand asset trellis-brainstorm → polygon-brainstorm"
+    },
+    {
+      "type": "rename-dir",
+      "from": ".agents/skills/trellis-break-loop",
+      "to": ".agents/skills/polygon-break-loop",
+      "description": "Rebrand asset trellis-break-loop → polygon-break-loop"
+    },
+    {
+      "type": "rename-dir",
+      "from": ".agents/skills/trellis-check",
+      "to": ".agents/skills/polygon-check",
+      "description": "Rebrand asset trellis-check → polygon-check"
+    },
+    {
+      "type": "rename-dir",
+      "from": ".agents/skills/trellis-continue",
+      "to": ".agents/skills/polygon-continue",
+      "description": "Rebrand asset trellis-continue → polygon-continue"
+    },
+    {
+      "type": "rename-dir",
+      "from": ".agents/skills/trellis-finish-work",
+      "to": ".agents/skills/polygon-finish-work",
+      "description": "Rebrand asset trellis-finish-work → polygon-finish-work"
+    },
+    {
+      "type": "rename-dir",
+      "from": ".agents/skills/trellis-meta",
+      "to": ".agents/skills/polygon-meta",
+      "description": "Rebrand asset trellis-meta → polygon-meta"
+    },
+    {
+      "type": "rename-dir",
+      "from": ".agents/skills/trellis-spec-bootstrap",
+      "to": ".agents/skills/polygon-spec-bootstrap",
+      "description": "Rebrand asset trellis-spec-bootstrap → polygon-spec-bootstrap"
+    },
+    {
+      "type": "rename-dir",
+      "from": ".agents/skills/trellis-start",
+      "to": ".agents/skills/polygon-start",
+      "description": "Rebrand asset trellis-start → polygon-start"
+    },
+    {
+      "type": "rename-dir",
+      "from": ".agents/skills/trellis-update-spec",
+      "to": ".agents/skills/polygon-update-spec",
+      "description": "Rebrand asset trellis-update-spec → polygon-update-spec"
+    },
+    {
+      "type": "rename",
+      "from": ".claude/agents/trellis-check.md",
+      "to": ".claude/agents/polygon-check.md",
+      "description": "Rebrand asset trellis-check.md → polygon-check.md"
+    },
+    {
+      "type": "rename",
+      "from": ".claude/agents/trellis-implement.md",
+      "to": ".claude/agents/polygon-implement.md",
+      "description": "Rebrand asset trellis-implement.md → polygon-implement.md"
+    },
+    {
+      "type": "rename",
+      "from": ".claude/agents/trellis-research.md",
+      "to": ".claude/agents/polygon-research.md",
+      "description": "Rebrand asset trellis-research.md → polygon-research.md"
+    },
+    {
+      "type": "rename-dir",
+      "from": ".claude/commands/trellis",
+      "to": ".claude/commands/polygon",
+      "description": "Rebrand asset trellis → polygon"
+    },
+    {
+      "type": "rename-dir",
+      "from": ".claude/skills/trellis-before-dev",
+      "to": ".claude/skills/polygon-before-dev",
+      "description": "Rebrand asset trellis-before-dev → polygon-before-dev"
+    },
+    {
+      "type": "rename-dir",
+      "from": ".claude/skills/trellis-brainstorm",
+      "to": ".claude/skills/polygon-brainstorm",
+      "description": "Rebrand asset trellis-brainstorm → polygon-brainstorm"
+    },
+    {
+      "type": "rename-dir",
+      "from": ".claude/skills/trellis-break-loop",
+      "to": ".claude/skills/polygon-break-loop",
+      "description": "Rebrand asset trellis-break-loop → polygon-break-loop"
+    },
+    {
+      "type": "rename-dir",
+      "from": ".claude/skills/trellis-check",
+      "to": ".claude/skills/polygon-check",
+      "description": "Rebrand asset trellis-check → polygon-check"
+    },
+    {
+      "type": "rename-dir",
+      "from": ".claude/skills/trellis-meta",
+      "to": ".claude/skills/polygon-meta",
+      "description": "Rebrand asset trellis-meta → polygon-meta"
+    },
+    {
+      "type": "rename-dir",
+      "from": ".claude/skills/trellis-spec-bootstrap",
+      "to": ".claude/skills/polygon-spec-bootstrap",
+      "description": "Rebrand asset trellis-spec-bootstrap → polygon-spec-bootstrap"
+    },
+    {
+      "type": "rename-dir",
+      "from": ".claude/skills/trellis-update-spec",
+      "to": ".claude/skills/polygon-update-spec",
+      "description": "Rebrand asset trellis-update-spec → polygon-update-spec"
+    },
+    {
+      "type": "rename",
+      "from": ".codebuddy/agents/trellis-check.md",
+      "to": ".codebuddy/agents/polygon-check.md",
+      "description": "Rebrand asset trellis-check.md → polygon-check.md"
+    },
+    {
+      "type": "rename",
+      "from": ".codebuddy/agents/trellis-implement.md",
+      "to": ".codebuddy/agents/polygon-implement.md",
+      "description": "Rebrand asset trellis-implement.md → polygon-implement.md"
+    },
+    {
+      "type": "rename",
+      "from": ".codebuddy/agents/trellis-research.md",
+      "to": ".codebuddy/agents/polygon-research.md",
+      "description": "Rebrand asset trellis-research.md → polygon-research.md"
+    },
+    {
+      "type": "rename-dir",
+      "from": ".codebuddy/commands/trellis",
+      "to": ".codebuddy/commands/polygon",
+      "description": "Rebrand asset trellis → polygon"
+    },
+    {
+      "type": "rename-dir",
+      "from": ".codebuddy/skills/trellis-before-dev",
+      "to": ".codebuddy/skills/polygon-before-dev",
+      "description": "Rebrand asset trellis-before-dev → polygon-before-dev"
+    },
+    {
+      "type": "rename-dir",
+      "from": ".codebuddy/skills/trellis-brainstorm",
+      "to": ".codebuddy/skills/polygon-brainstorm",
+      "description": "Rebrand asset trellis-brainstorm → polygon-brainstorm"
+    },
+    {
+      "type": "rename-dir",
+      "from": ".codebuddy/skills/trellis-break-loop",
+      "to": ".codebuddy/skills/polygon-break-loop",
+      "description": "Rebrand asset trellis-break-loop → polygon-break-loop"
+    },
+    {
+      "type": "rename-dir",
+      "from": ".codebuddy/skills/trellis-check",
+      "to": ".codebuddy/skills/polygon-check",
+      "description": "Rebrand asset trellis-check → polygon-check"
+    },
+    {
+      "type": "rename-dir",
+      "from": ".codebuddy/skills/trellis-meta",
+      "to": ".codebuddy/skills/polygon-meta",
+      "description": "Rebrand asset trellis-meta → polygon-meta"
+    },
+    {
+      "type": "rename-dir",
+      "from": ".codebuddy/skills/trellis-spec-bootstrap",
+      "to": ".codebuddy/skills/polygon-spec-bootstrap",
+      "description": "Rebrand asset trellis-spec-bootstrap → polygon-spec-bootstrap"
+    },
+    {
+      "type": "rename-dir",
+      "from": ".codebuddy/skills/trellis-update-spec",
+      "to": ".codebuddy/skills/polygon-update-spec",
+      "description": "Rebrand asset trellis-update-spec → polygon-update-spec"
+    },
+    {
+      "type": "rename",
+      "from": ".codex/agents/trellis-check.toml",
+      "to": ".codex/agents/polygon-check.toml",
+      "description": "Rebrand asset trellis-check.toml → polygon-check.toml"
+    },
+    {
+      "type": "rename",
+      "from": ".codex/agents/trellis-implement.toml",
+      "to": ".codex/agents/polygon-implement.toml",
+      "description": "Rebrand asset trellis-implement.toml → polygon-implement.toml"
+    },
+    {
+      "type": "rename",
+      "from": ".codex/agents/trellis-research.toml",
+      "to": ".codex/agents/polygon-research.toml",
+      "description": "Rebrand asset trellis-research.toml → polygon-research.toml"
+    },
+    {
+      "type": "rename",
+      "from": ".cursor/agents/trellis-check.md",
+      "to": ".cursor/agents/polygon-check.md",
+      "description": "Rebrand asset trellis-check.md → polygon-check.md"
+    },
+    {
+      "type": "rename",
+      "from": ".cursor/agents/trellis-implement.md",
+      "to": ".cursor/agents/polygon-implement.md",
+      "description": "Rebrand asset trellis-implement.md → polygon-implement.md"
+    },
+    {
+      "type": "rename",
+      "from": ".cursor/agents/trellis-research.md",
+      "to": ".cursor/agents/polygon-research.md",
+      "description": "Rebrand asset trellis-research.md → polygon-research.md"
+    },
+    {
+      "type": "rename",
+      "from": ".cursor/commands/trellis-continue.md",
+      "to": ".cursor/commands/polygon-continue.md",
+      "description": "Rebrand asset trellis-continue.md → polygon-continue.md"
+    },
+    {
+      "type": "rename",
+      "from": ".cursor/commands/trellis-finish-work.md",
+      "to": ".cursor/commands/polygon-finish-work.md",
+      "description": "Rebrand asset trellis-finish-work.md → polygon-finish-work.md"
+    },
+    {
+      "type": "rename-dir",
+      "from": ".cursor/skills/trellis-before-dev",
+      "to": ".cursor/skills/polygon-before-dev",
+      "description": "Rebrand asset trellis-before-dev → polygon-before-dev"
+    },
+    {
+      "type": "rename-dir",
+      "from": ".cursor/skills/trellis-brainstorm",
+      "to": ".cursor/skills/polygon-brainstorm",
+      "description": "Rebrand asset trellis-brainstorm → polygon-brainstorm"
+    },
+    {
+      "type": "rename-dir",
+      "from": ".cursor/skills/trellis-break-loop",
+      "to": ".cursor/skills/polygon-break-loop",
+      "description": "Rebrand asset trellis-break-loop → polygon-break-loop"
+    },
+    {
+      "type": "rename-dir",
+      "from": ".cursor/skills/trellis-check",
+      "to": ".cursor/skills/polygon-check",
+      "description": "Rebrand asset trellis-check → polygon-check"
+    },
+    {
+      "type": "rename-dir",
+      "from": ".cursor/skills/trellis-meta",
+      "to": ".cursor/skills/polygon-meta",
+      "description": "Rebrand asset trellis-meta → polygon-meta"
+    },
+    {
+      "type": "rename-dir",
+      "from": ".cursor/skills/trellis-spec-bootstrap",
+      "to": ".cursor/skills/polygon-spec-bootstrap",
+      "description": "Rebrand asset trellis-spec-bootstrap → polygon-spec-bootstrap"
+    },
+    {
+      "type": "rename-dir",
+      "from": ".cursor/skills/trellis-update-spec",
+      "to": ".cursor/skills/polygon-update-spec",
+      "description": "Rebrand asset trellis-update-spec → polygon-update-spec"
+    },
+    {
+      "type": "rename-dir",
+      "from": ".factory/commands/trellis",
+      "to": ".factory/commands/polygon",
+      "description": "Rebrand asset trellis → polygon"
+    },
+    {
+      "type": "rename",
+      "from": ".factory/droids/trellis-check.md",
+      "to": ".factory/droids/polygon-check.md",
+      "description": "Rebrand asset trellis-check.md → polygon-check.md"
+    },
+    {
+      "type": "rename",
+      "from": ".factory/droids/trellis-implement.md",
+      "to": ".factory/droids/polygon-implement.md",
+      "description": "Rebrand asset trellis-implement.md → polygon-implement.md"
+    },
+    {
+      "type": "rename",
+      "from": ".factory/droids/trellis-research.md",
+      "to": ".factory/droids/polygon-research.md",
+      "description": "Rebrand asset trellis-research.md → polygon-research.md"
+    },
+    {
+      "type": "rename-dir",
+      "from": ".factory/skills/trellis-before-dev",
+      "to": ".factory/skills/polygon-before-dev",
+      "description": "Rebrand asset trellis-before-dev → polygon-before-dev"
+    },
+    {
+      "type": "rename-dir",
+      "from": ".factory/skills/trellis-brainstorm",
+      "to": ".factory/skills/polygon-brainstorm",
+      "description": "Rebrand asset trellis-brainstorm → polygon-brainstorm"
+    },
+    {
+      "type": "rename-dir",
+      "from": ".factory/skills/trellis-break-loop",
+      "to": ".factory/skills/polygon-break-loop",
+      "description": "Rebrand asset trellis-break-loop → polygon-break-loop"
+    },
+    {
+      "type": "rename-dir",
+      "from": ".factory/skills/trellis-check",
+      "to": ".factory/skills/polygon-check",
+      "description": "Rebrand asset trellis-check → polygon-check"
+    },
+    {
+      "type": "rename-dir",
+      "from": ".factory/skills/trellis-meta",
+      "to": ".factory/skills/polygon-meta",
+      "description": "Rebrand asset trellis-meta → polygon-meta"
+    },
+    {
+      "type": "rename-dir",
+      "from": ".factory/skills/trellis-spec-bootstrap",
+      "to": ".factory/skills/polygon-spec-bootstrap",
+      "description": "Rebrand asset trellis-spec-bootstrap → polygon-spec-bootstrap"
+    },
+    {
+      "type": "rename-dir",
+      "from": ".factory/skills/trellis-update-spec",
+      "to": ".factory/skills/polygon-update-spec",
+      "description": "Rebrand asset trellis-update-spec → polygon-update-spec"
+    },
+    {
+      "type": "rename",
+      "from": ".gemini/agents/trellis-check.md",
+      "to": ".gemini/agents/polygon-check.md",
+      "description": "Rebrand asset trellis-check.md → polygon-check.md"
+    },
+    {
+      "type": "rename",
+      "from": ".gemini/agents/trellis-implement.md",
+      "to": ".gemini/agents/polygon-implement.md",
+      "description": "Rebrand asset trellis-implement.md → polygon-implement.md"
+    },
+    {
+      "type": "rename",
+      "from": ".gemini/agents/trellis-research.md",
+      "to": ".gemini/agents/polygon-research.md",
+      "description": "Rebrand asset trellis-research.md → polygon-research.md"
+    },
+    {
+      "type": "rename-dir",
+      "from": ".gemini/commands/trellis",
+      "to": ".gemini/commands/polygon",
+      "description": "Rebrand asset trellis → polygon"
+    },
+    {
+      "type": "rename",
+      "from": ".github/agents/trellis-check.agent.md",
+      "to": ".github/agents/polygon-check.agent.md",
+      "description": "Rebrand asset trellis-check.agent.md → polygon-check.agent.md"
+    },
+    {
+      "type": "rename",
+      "from": ".github/agents/trellis-implement.agent.md",
+      "to": ".github/agents/polygon-implement.agent.md",
+      "description": "Rebrand asset trellis-implement.agent.md → polygon-implement.agent.md"
+    },
+    {
+      "type": "rename",
+      "from": ".github/agents/trellis-research.agent.md",
+      "to": ".github/agents/polygon-research.agent.md",
+      "description": "Rebrand asset trellis-research.agent.md → polygon-research.agent.md"
+    },
+    {
+      "type": "rename",
+      "from": ".github/hooks/trellis.json",
+      "to": ".github/hooks/polygon.json",
+      "description": "Rebrand asset trellis.json → polygon.json"
+    },
+    {
+      "type": "rename-dir",
+      "from": ".github/skills/trellis-before-dev",
+      "to": ".github/skills/polygon-before-dev",
+      "description": "Rebrand asset trellis-before-dev → polygon-before-dev"
+    },
+    {
+      "type": "rename-dir",
+      "from": ".github/skills/trellis-brainstorm",
+      "to": ".github/skills/polygon-brainstorm",
+      "description": "Rebrand asset trellis-brainstorm → polygon-brainstorm"
+    },
+    {
+      "type": "rename-dir",
+      "from": ".github/skills/trellis-break-loop",
+      "to": ".github/skills/polygon-break-loop",
+      "description": "Rebrand asset trellis-break-loop → polygon-break-loop"
+    },
+    {
+      "type": "rename-dir",
+      "from": ".github/skills/trellis-check",
+      "to": ".github/skills/polygon-check",
+      "description": "Rebrand asset trellis-check → polygon-check"
+    },
+    {
+      "type": "rename-dir",
+      "from": ".github/skills/trellis-meta",
+      "to": ".github/skills/polygon-meta",
+      "description": "Rebrand asset trellis-meta → polygon-meta"
+    },
+    {
+      "type": "rename-dir",
+      "from": ".github/skills/trellis-spec-bootstrap",
+      "to": ".github/skills/polygon-spec-bootstrap",
+      "description": "Rebrand asset trellis-spec-bootstrap → polygon-spec-bootstrap"
+    },
+    {
+      "type": "rename-dir",
+      "from": ".github/skills/trellis-update-spec",
+      "to": ".github/skills/polygon-update-spec",
+      "description": "Rebrand asset trellis-update-spec → polygon-update-spec"
+    },
+    {
+      "type": "rename-dir",
+      "from": ".kilocode/skills/trellis-before-dev",
+      "to": ".kilocode/skills/polygon-before-dev",
+      "description": "Rebrand asset trellis-before-dev → polygon-before-dev"
+    },
+    {
+      "type": "rename-dir",
+      "from": ".kilocode/skills/trellis-brainstorm",
+      "to": ".kilocode/skills/polygon-brainstorm",
+      "description": "Rebrand asset trellis-brainstorm → polygon-brainstorm"
+    },
+    {
+      "type": "rename-dir",
+      "from": ".kilocode/skills/trellis-break-loop",
+      "to": ".kilocode/skills/polygon-break-loop",
+      "description": "Rebrand asset trellis-break-loop → polygon-break-loop"
+    },
+    {
+      "type": "rename-dir",
+      "from": ".kilocode/skills/trellis-check",
+      "to": ".kilocode/skills/polygon-check",
+      "description": "Rebrand asset trellis-check → polygon-check"
+    },
+    {
+      "type": "rename-dir",
+      "from": ".kilocode/skills/trellis-meta",
+      "to": ".kilocode/skills/polygon-meta",
+      "description": "Rebrand asset trellis-meta → polygon-meta"
+    },
+    {
+      "type": "rename-dir",
+      "from": ".kilocode/skills/trellis-spec-bootstrap",
+      "to": ".kilocode/skills/polygon-spec-bootstrap",
+      "description": "Rebrand asset trellis-spec-bootstrap → polygon-spec-bootstrap"
+    },
+    {
+      "type": "rename-dir",
+      "from": ".kilocode/skills/trellis-update-spec",
+      "to": ".kilocode/skills/polygon-update-spec",
+      "description": "Rebrand asset trellis-update-spec → polygon-update-spec"
+    },
+    {
+      "type": "rename",
+      "from": ".kiro/agents/trellis-check.json",
+      "to": ".kiro/agents/polygon-check.json",
+      "description": "Rebrand asset trellis-check.json → polygon-check.json"
+    },
+    {
+      "type": "rename",
+      "from": ".kiro/agents/trellis-implement.json",
+      "to": ".kiro/agents/polygon-implement.json",
+      "description": "Rebrand asset trellis-implement.json → polygon-implement.json"
+    },
+    {
+      "type": "rename",
+      "from": ".kiro/agents/trellis-research.json",
+      "to": ".kiro/agents/polygon-research.json",
+      "description": "Rebrand asset trellis-research.json → polygon-research.json"
+    },
+    {
+      "type": "rename-dir",
+      "from": ".kiro/skills/trellis-before-dev",
+      "to": ".kiro/skills/polygon-before-dev",
+      "description": "Rebrand asset trellis-before-dev → polygon-before-dev"
+    },
+    {
+      "type": "rename-dir",
+      "from": ".kiro/skills/trellis-brainstorm",
+      "to": ".kiro/skills/polygon-brainstorm",
+      "description": "Rebrand asset trellis-brainstorm → polygon-brainstorm"
+    },
+    {
+      "type": "rename-dir",
+      "from": ".kiro/skills/trellis-break-loop",
+      "to": ".kiro/skills/polygon-break-loop",
+      "description": "Rebrand asset trellis-break-loop → polygon-break-loop"
+    },
+    {
+      "type": "rename-dir",
+      "from": ".kiro/skills/trellis-check",
+      "to": ".kiro/skills/polygon-check",
+      "description": "Rebrand asset trellis-check → polygon-check"
+    },
+    {
+      "type": "rename-dir",
+      "from": ".kiro/skills/trellis-continue",
+      "to": ".kiro/skills/polygon-continue",
+      "description": "Rebrand asset trellis-continue → polygon-continue"
+    },
+    {
+      "type": "rename-dir",
+      "from": ".kiro/skills/trellis-finish-work",
+      "to": ".kiro/skills/polygon-finish-work",
+      "description": "Rebrand asset trellis-finish-work → polygon-finish-work"
+    },
+    {
+      "type": "rename-dir",
+      "from": ".kiro/skills/trellis-meta",
+      "to": ".kiro/skills/polygon-meta",
+      "description": "Rebrand asset trellis-meta → polygon-meta"
+    },
+    {
+      "type": "rename-dir",
+      "from": ".kiro/skills/trellis-spec-bootstrap",
+      "to": ".kiro/skills/polygon-spec-bootstrap",
+      "description": "Rebrand asset trellis-spec-bootstrap → polygon-spec-bootstrap"
+    },
+    {
+      "type": "rename-dir",
+      "from": ".kiro/skills/trellis-update-spec",
+      "to": ".kiro/skills/polygon-update-spec",
+      "description": "Rebrand asset trellis-update-spec → polygon-update-spec"
+    },
+    {
+      "type": "rename",
+      "from": ".opencode/agents/trellis-check.md",
+      "to": ".opencode/agents/polygon-check.md",
+      "description": "Rebrand asset trellis-check.md → polygon-check.md"
+    },
+    {
+      "type": "rename",
+      "from": ".opencode/agents/trellis-implement.md",
+      "to": ".opencode/agents/polygon-implement.md",
+      "description": "Rebrand asset trellis-implement.md → polygon-implement.md"
+    },
+    {
+      "type": "rename",
+      "from": ".opencode/agents/trellis-research.md",
+      "to": ".opencode/agents/polygon-research.md",
+      "description": "Rebrand asset trellis-research.md → polygon-research.md"
+    },
+    {
+      "type": "rename-dir",
+      "from": ".opencode/commands/trellis",
+      "to": ".opencode/commands/polygon",
+      "description": "Rebrand asset trellis → polygon"
+    },
+    {
+      "type": "rename",
+      "from": ".opencode/lib/trellis-context.js",
+      "to": ".opencode/lib/polygon-context.js",
+      "description": "Rebrand asset trellis-context.js → polygon-context.js"
+    },
+    {
+      "type": "rename-dir",
+      "from": ".opencode/skills/trellis-before-dev",
+      "to": ".opencode/skills/polygon-before-dev",
+      "description": "Rebrand asset trellis-before-dev → polygon-before-dev"
+    },
+    {
+      "type": "rename-dir",
+      "from": ".opencode/skills/trellis-brainstorm",
+      "to": ".opencode/skills/polygon-brainstorm",
+      "description": "Rebrand asset trellis-brainstorm → polygon-brainstorm"
+    },
+    {
+      "type": "rename-dir",
+      "from": ".opencode/skills/trellis-break-loop",
+      "to": ".opencode/skills/polygon-break-loop",
+      "description": "Rebrand asset trellis-break-loop → polygon-break-loop"
+    },
+    {
+      "type": "rename-dir",
+      "from": ".opencode/skills/trellis-check",
+      "to": ".opencode/skills/polygon-check",
+      "description": "Rebrand asset trellis-check → polygon-check"
+    },
+    {
+      "type": "rename-dir",
+      "from": ".opencode/skills/trellis-meta",
+      "to": ".opencode/skills/polygon-meta",
+      "description": "Rebrand asset trellis-meta → polygon-meta"
+    },
+    {
+      "type": "rename-dir",
+      "from": ".opencode/skills/trellis-spec-bootstrap",
+      "to": ".opencode/skills/polygon-spec-bootstrap",
+      "description": "Rebrand asset trellis-spec-bootstrap → polygon-spec-bootstrap"
+    },
+    {
+      "type": "rename-dir",
+      "from": ".opencode/skills/trellis-update-spec",
+      "to": ".opencode/skills/polygon-update-spec",
+      "description": "Rebrand asset trellis-update-spec → polygon-update-spec"
+    },
+    {
+      "type": "rename",
+      "from": ".pi/agents/trellis-check.md",
+      "to": ".pi/agents/polygon-check.md",
+      "description": "Rebrand asset trellis-check.md → polygon-check.md"
+    },
+    {
+      "type": "rename",
+      "from": ".pi/agents/trellis-implement.md",
+      "to": ".pi/agents/polygon-implement.md",
+      "description": "Rebrand asset trellis-implement.md → polygon-implement.md"
+    },
+    {
+      "type": "rename",
+      "from": ".pi/agents/trellis-research.md",
+      "to": ".pi/agents/polygon-research.md",
+      "description": "Rebrand asset trellis-research.md → polygon-research.md"
+    },
+    {
+      "type": "rename-dir",
+      "from": ".pi/extensions/trellis",
+      "to": ".pi/extensions/polygon",
+      "description": "Rebrand asset trellis → polygon"
+    },
+    {
+      "type": "rename",
+      "from": ".pi/prompts/trellis-continue.md",
+      "to": ".pi/prompts/polygon-continue.md",
+      "description": "Rebrand asset trellis-continue.md → polygon-continue.md"
+    },
+    {
+      "type": "rename",
+      "from": ".pi/prompts/trellis-finish-work.md",
+      "to": ".pi/prompts/polygon-finish-work.md",
+      "description": "Rebrand asset trellis-finish-work.md → polygon-finish-work.md"
+    },
+    {
+      "type": "rename-dir",
+      "from": ".pi/skills/trellis-before-dev",
+      "to": ".pi/skills/polygon-before-dev",
+      "description": "Rebrand asset trellis-before-dev → polygon-before-dev"
+    },
+    {
+      "type": "rename-dir",
+      "from": ".pi/skills/trellis-brainstorm",
+      "to": ".pi/skills/polygon-brainstorm",
+      "description": "Rebrand asset trellis-brainstorm → polygon-brainstorm"
+    },
+    {
+      "type": "rename-dir",
+      "from": ".pi/skills/trellis-break-loop",
+      "to": ".pi/skills/polygon-break-loop",
+      "description": "Rebrand asset trellis-break-loop → polygon-break-loop"
+    },
+    {
+      "type": "rename-dir",
+      "from": ".pi/skills/trellis-check",
+      "to": ".pi/skills/polygon-check",
+      "description": "Rebrand asset trellis-check → polygon-check"
+    },
+    {
+      "type": "rename-dir",
+      "from": ".pi/skills/trellis-meta",
+      "to": ".pi/skills/polygon-meta",
+      "description": "Rebrand asset trellis-meta → polygon-meta"
+    },
+    {
+      "type": "rename-dir",
+      "from": ".pi/skills/trellis-spec-bootstrap",
+      "to": ".pi/skills/polygon-spec-bootstrap",
+      "description": "Rebrand asset trellis-spec-bootstrap → polygon-spec-bootstrap"
+    },
+    {
+      "type": "rename-dir",
+      "from": ".pi/skills/trellis-update-spec",
+      "to": ".pi/skills/polygon-update-spec",
+      "description": "Rebrand asset trellis-update-spec → polygon-update-spec"
+    },
+    {
+      "type": "rename",
+      "from": ".qoder/agents/trellis-check.md",
+      "to": ".qoder/agents/polygon-check.md",
+      "description": "Rebrand asset trellis-check.md → polygon-check.md"
+    },
+    {
+      "type": "rename",
+      "from": ".qoder/agents/trellis-implement.md",
+      "to": ".qoder/agents/polygon-implement.md",
+      "description": "Rebrand asset trellis-implement.md → polygon-implement.md"
+    },
+    {
+      "type": "rename",
+      "from": ".qoder/agents/trellis-research.md",
+      "to": ".qoder/agents/polygon-research.md",
+      "description": "Rebrand asset trellis-research.md → polygon-research.md"
+    },
+    {
+      "type": "rename",
+      "from": ".qoder/commands/trellis-continue.md",
+      "to": ".qoder/commands/polygon-continue.md",
+      "description": "Rebrand asset trellis-continue.md → polygon-continue.md"
+    },
+    {
+      "type": "rename",
+      "from": ".qoder/commands/trellis-finish-work.md",
+      "to": ".qoder/commands/polygon-finish-work.md",
+      "description": "Rebrand asset trellis-finish-work.md → polygon-finish-work.md"
+    },
+    {
+      "type": "rename-dir",
+      "from": ".qoder/skills/trellis-before-dev",
+      "to": ".qoder/skills/polygon-before-dev",
+      "description": "Rebrand asset trellis-before-dev → polygon-before-dev"
+    },
+    {
+      "type": "rename-dir",
+      "from": ".qoder/skills/trellis-brainstorm",
+      "to": ".qoder/skills/polygon-brainstorm",
+      "description": "Rebrand asset trellis-brainstorm → polygon-brainstorm"
+    },
+    {
+      "type": "rename-dir",
+      "from": ".qoder/skills/trellis-break-loop",
+      "to": ".qoder/skills/polygon-break-loop",
+      "description": "Rebrand asset trellis-break-loop → polygon-break-loop"
+    },
+    {
+      "type": "rename-dir",
+      "from": ".qoder/skills/trellis-check",
+      "to": ".qoder/skills/polygon-check",
+      "description": "Rebrand asset trellis-check → polygon-check"
+    },
+    {
+      "type": "rename-dir",
+      "from": ".qoder/skills/trellis-meta",
+      "to": ".qoder/skills/polygon-meta",
+      "description": "Rebrand asset trellis-meta → polygon-meta"
+    },
+    {
+      "type": "rename-dir",
+      "from": ".qoder/skills/trellis-spec-bootstrap",
+      "to": ".qoder/skills/polygon-spec-bootstrap",
+      "description": "Rebrand asset trellis-spec-bootstrap → polygon-spec-bootstrap"
+    },
+    {
+      "type": "rename-dir",
+      "from": ".qoder/skills/trellis-update-spec",
+      "to": ".qoder/skills/polygon-update-spec",
+      "description": "Rebrand asset trellis-update-spec → polygon-update-spec"
+    },
+    {
+      "type": "rename-dir",
+      "from": ".reasonix/skills/trellis-before-dev",
+      "to": ".reasonix/skills/polygon-before-dev",
+      "description": "Rebrand asset trellis-before-dev → polygon-before-dev"
+    },
+    {
+      "type": "rename-dir",
+      "from": ".reasonix/skills/trellis-brainstorm",
+      "to": ".reasonix/skills/polygon-brainstorm",
+      "description": "Rebrand asset trellis-brainstorm → polygon-brainstorm"
+    },
+    {
+      "type": "rename-dir",
+      "from": ".reasonix/skills/trellis-break-loop",
+      "to": ".reasonix/skills/polygon-break-loop",
+      "description": "Rebrand asset trellis-break-loop → polygon-break-loop"
+    },
+    {
+      "type": "rename-dir",
+      "from": ".reasonix/skills/trellis-check",
+      "to": ".reasonix/skills/polygon-check",
+      "description": "Rebrand asset trellis-check → polygon-check"
+    },
+    {
+      "type": "rename-dir",
+      "from": ".reasonix/skills/trellis-continue",
+      "to": ".reasonix/skills/polygon-continue",
+      "description": "Rebrand asset trellis-continue → polygon-continue"
+    },
+    {
+      "type": "rename-dir",
+      "from": ".reasonix/skills/trellis-finish-work",
+      "to": ".reasonix/skills/polygon-finish-work",
+      "description": "Rebrand asset trellis-finish-work → polygon-finish-work"
+    },
+    {
+      "type": "rename-dir",
+      "from": ".reasonix/skills/trellis-implement",
+      "to": ".reasonix/skills/polygon-implement",
+      "description": "Rebrand asset trellis-implement → polygon-implement"
+    },
+    {
+      "type": "rename-dir",
+      "from": ".reasonix/skills/trellis-meta",
+      "to": ".reasonix/skills/polygon-meta",
+      "description": "Rebrand asset trellis-meta → polygon-meta"
+    },
+    {
+      "type": "rename-dir",
+      "from": ".reasonix/skills/trellis-spec-bootstrap",
+      "to": ".reasonix/skills/polygon-spec-bootstrap",
+      "description": "Rebrand asset trellis-spec-bootstrap → polygon-spec-bootstrap"
+    },
+    {
+      "type": "rename-dir",
+      "from": ".reasonix/skills/trellis-update-spec",
+      "to": ".reasonix/skills/polygon-update-spec",
+      "description": "Rebrand asset trellis-update-spec → polygon-update-spec"
+    },
+    {
+      "type": "rename-dir",
+      "from": ".windsurf/skills/trellis-before-dev",
+      "to": ".windsurf/skills/polygon-before-dev",
+      "description": "Rebrand asset trellis-before-dev → polygon-before-dev"
+    },
+    {
+      "type": "rename-dir",
+      "from": ".windsurf/skills/trellis-brainstorm",
+      "to": ".windsurf/skills/polygon-brainstorm",
+      "description": "Rebrand asset trellis-brainstorm → polygon-brainstorm"
+    },
+    {
+      "type": "rename-dir",
+      "from": ".windsurf/skills/trellis-break-loop",
+      "to": ".windsurf/skills/polygon-break-loop",
+      "description": "Rebrand asset trellis-break-loop → polygon-break-loop"
+    },
+    {
+      "type": "rename-dir",
+      "from": ".windsurf/skills/trellis-check",
+      "to": ".windsurf/skills/polygon-check",
+      "description": "Rebrand asset trellis-check → polygon-check"
+    },
+    {
+      "type": "rename-dir",
+      "from": ".windsurf/skills/trellis-meta",
+      "to": ".windsurf/skills/polygon-meta",
+      "description": "Rebrand asset trellis-meta → polygon-meta"
+    },
+    {
+      "type": "rename-dir",
+      "from": ".windsurf/skills/trellis-spec-bootstrap",
+      "to": ".windsurf/skills/polygon-spec-bootstrap",
+      "description": "Rebrand asset trellis-spec-bootstrap → polygon-spec-bootstrap"
+    },
+    {
+      "type": "rename-dir",
+      "from": ".windsurf/skills/trellis-update-spec",
+      "to": ".windsurf/skills/polygon-update-spec",
+      "description": "Rebrand asset trellis-update-spec → polygon-update-spec"
+    },
+    {
+      "type": "rename",
+      "from": ".windsurf/workflows/trellis-continue.md",
+      "to": ".windsurf/workflows/polygon-continue.md",
+      "description": "Rebrand asset trellis-continue.md → polygon-continue.md"
+    },
+    {
+      "type": "rename",
+      "from": ".windsurf/workflows/trellis-finish-work.md",
+      "to": ".windsurf/workflows/polygon-finish-work.md",
+      "description": "Rebrand asset trellis-finish-work.md → polygon-finish-work.md"
+    },
+    {
+      "type": "rename",
+      "from": ".windsurf/workflows/trellis-start.md",
+      "to": ".windsurf/workflows/polygon-start.md",
+      "description": "Rebrand asset trellis-start.md → polygon-start.md"
+    }
+  ],
+  "configSectionsAdded": [],
+  "migrationGuide": "## Trellis → Polygon: full rebrand\n\n0.7.0 renames the workflow directory and every managed asset. `polygon update --migrate` does it all in one pass:\n\n### 1. `.trellis/` → `.polygon/`\nThe whole workflow directory is renamed in place **before** the version check runs, so your tasks, spec, workspace, journal, config and runtime move atomically. No data is copied or deleted.\n\n### 2. `trellis-*` → `polygon-*` assets\nEvery skill, agent and command directory/file gains the `polygon-` name across all platforms (156 rename entries). Unmodified files are renamed silently; files you customized land on the standard `Modified by you` confirm prompt — pressing Enter (backup-rename) keeps your edits at the new path.\n\n### 3. Things to update yourself\n- **Repo-root `.gitignore`**: if it lists `.trellis/`, change it to `.polygon/` (update warns you when it detects this).\n- **`update.skip` in config.yaml**: if you pinned `.trellis/...` paths, repoint them to `.polygon/...`.\n- **Scripts/CI** calling the `trellis` or `tl` command: switch to `polygon`.\n- **Anything reading `TRELLIS_*` env vars**: switch to `POLYGON_*`.\n\n### How to upgrade\n```bash\npolygon update --migrate\n```\n`--migrate` is required (breaking release). The rename is idempotent — re-running is a no-op.",
+  "aiInstructions": "This is the Polygon rebrand release. After `polygon update --migrate`: the workflow dir is now `.polygon/` (was `.trellis/`), and all skills/agents/commands use the `polygon-` prefix (was `trellis-`). When referencing workflow paths, skills, or the CLI, always use the polygon names. If the user's repo-root .gitignore or config.yaml `update.skip` still mentions `.trellis/`, point that out so they can fix it. The `trellis`/`tl` commands no longer exist — use `polygon`.",
+  "notes": "Breaking. Run `polygon update --migrate`. The `.trellis/` → `.polygon/` directory rename happens automatically as a pre-step; the 156 asset renames run through the normal migration flow. Idempotent and data-safe (atomic rename, no copy/delete of user data)."
+}

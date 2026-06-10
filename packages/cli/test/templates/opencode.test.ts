@@ -4,12 +4,12 @@ import { join } from "node:path";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import {
   contextCollector,
-  isTrellisSubagent,
-  TrellisContext,
-} from "../../src/templates/opencode/lib/trellis-context.js";
+  isPolygonSubagent,
+  PolygonContext,
+} from "../../src/templates/opencode/lib/polygon-context.js";
 import {
   buildSessionContext,
-  hasInjectedTrellisContext,
+  hasInjectedPolygonContext,
 } from "../../src/templates/opencode/lib/session-utils.js";
 import injectSubagentContextPlugin from "../../src/templates/opencode/plugins/inject-subagent-context.js";
 import sessionStartPlugin from "../../src/templates/opencode/plugins/session-start.js";
@@ -34,7 +34,7 @@ async function createOpenCodeInjectHooks(
   env: NodeJS.ProcessEnv = {},
 ): Promise<OpenCodeInjectHooks> {
   return (await injectSubagentContextPlugin({
-    directory: "/tmp/trellis-opencode-test",
+    directory: "/tmp/polygon-opencode-test",
     platform,
     env,
   })) as OpenCodeInjectHooks;
@@ -74,7 +74,7 @@ describe("opencode session context dedupe", () => {
 describe("opencode session-start history detection", () => {
   it("includes the one-shot first-reply notice in injected context", () => {
     const context = buildSessionContext({
-      directory: "/tmp/trellis-opencode-test",
+      directory: "/tmp/polygon-opencode-test",
       getActiveTask: () => ({ taskPath: null, source: "none", stale: false }),
       getContextKey: () => null,
       getCurrentTask: () => null,
@@ -103,7 +103,7 @@ describe("opencode session-start history detection", () => {
             type: "text",
             text: "hello",
             metadata: {
-              trellis: {
+              polygon: {
                 sessionStart: true,
               },
             },
@@ -112,7 +112,7 @@ describe("opencode session-start history detection", () => {
       },
     ];
 
-    expect(hasInjectedTrellisContext(messages)).toBe(true);
+    expect(hasInjectedPolygonContext(messages)).toBe(true);
   });
 
   it("ignores unrelated user messages", () => {
@@ -128,16 +128,16 @@ describe("opencode session-start history detection", () => {
       },
     ];
 
-    expect(hasInjectedTrellisContext(messages)).toBe(false);
+    expect(hasInjectedPolygonContext(messages)).toBe(false);
   });
 });
 
 describe("opencode bash session context", () => {
-  it("injects TRELLIS_CONTEXT_ID into Bash commands from plugin sessionID", async () => {
+  it("injects POLYGON_CONTEXT_ID into Bash commands from plugin sessionID", async () => {
     const hooks = await createOpenCodeInjectHooks();
     const output = {
       args: {
-        command: "python3 ./.trellis/scripts/task.py start .trellis/tasks/demo",
+        command: "python3 ./.polygon/scripts/task.py start .polygon/tasks/demo",
       },
     };
 
@@ -147,7 +147,7 @@ describe("opencode bash session context", () => {
     );
 
     expect(output.args.command).toBe(
-      "export TRELLIS_CONTEXT_ID='opencode_oc-a'; python3 ./.trellis/scripts/task.py start .trellis/tasks/demo",
+      "export POLYGON_CONTEXT_ID='opencode_oc-a'; python3 ./.polygon/scripts/task.py start .polygon/tasks/demo",
     );
   });
 
@@ -155,7 +155,7 @@ describe("opencode bash session context", () => {
     const hooks = await createOpenCodeInjectHooks("win32");
     const output = {
       args: {
-        command: "python ./.trellis/scripts/task.py start .trellis/tasks/demo",
+        command: "python ./.polygon/scripts/task.py start .polygon/tasks/demo",
       },
     };
 
@@ -165,7 +165,7 @@ describe("opencode bash session context", () => {
     );
 
     expect(output.args.command).toBe(
-      "$env:TRELLIS_CONTEXT_ID = 'opencode_oc-a'; python ./.trellis/scripts/task.py start .trellis/tasks/demo",
+      "$env:POLYGON_CONTEXT_ID = 'opencode_oc-a'; python ./.polygon/scripts/task.py start .polygon/tasks/demo",
     );
   });
 
@@ -185,7 +185,7 @@ describe("opencode bash session context", () => {
     );
 
     expect(output.args.command).toBe(
-      "export TRELLIS_CONTEXT_ID='opencode_oc-a'; git diff --name-only",
+      "export POLYGON_CONTEXT_ID='opencode_oc-a'; git diff --name-only",
     );
   });
 
@@ -205,7 +205,7 @@ describe("opencode bash session context", () => {
     );
 
     expect(output.args.command).toBe(
-      "export TRELLIS_CONTEXT_ID='opencode_oc-a'; git status --short",
+      "export POLYGON_CONTEXT_ID='opencode_oc-a'; git status --short",
     );
   });
 
@@ -225,7 +225,7 @@ describe("opencode bash session context", () => {
     );
 
     expect(output.args.command).toBe(
-      "export TRELLIS_CONTEXT_ID='opencode_oc-a'; git log --oneline -1",
+      "export POLYGON_CONTEXT_ID='opencode_oc-a'; git log --oneline -1",
     );
   });
 
@@ -245,7 +245,7 @@ describe("opencode bash session context", () => {
     );
 
     expect(output.args.command).toBe(
-      "export TRELLIS_CONTEXT_ID='opencode_oc-a'; git branch --show-current",
+      "export POLYGON_CONTEXT_ID='opencode_oc-a'; git branch --show-current",
     );
   });
 
@@ -265,16 +265,16 @@ describe("opencode bash session context", () => {
     );
 
     expect(output.args.command).toBe(
-      "export TRELLIS_CONTEXT_ID='opencode_oc-a'; git rev-parse --show-toplevel",
+      "export POLYGON_CONTEXT_ID='opencode_oc-a'; git rev-parse --show-toplevel",
     );
   });
 
-  it("does not duplicate an explicit TRELLIS_CONTEXT_ID assignment", async () => {
+  it("does not duplicate an explicit POLYGON_CONTEXT_ID assignment", async () => {
     const hooks = await createOpenCodeInjectHooks();
     const output = {
       args: {
         command:
-          "TRELLIS_CONTEXT_ID=manual python3 ./.trellis/scripts/task.py current",
+          "POLYGON_CONTEXT_ID=manual python3 ./.polygon/scripts/task.py current",
       },
     };
 
@@ -284,16 +284,16 @@ describe("opencode bash session context", () => {
     );
 
     expect(output.args.command).toBe(
-      "TRELLIS_CONTEXT_ID=manual python3 ./.trellis/scripts/task.py current",
+      "POLYGON_CONTEXT_ID=manual python3 ./.polygon/scripts/task.py current",
     );
   });
 
-  it("does not duplicate an explicit exported TRELLIS_CONTEXT_ID", async () => {
+  it("does not duplicate an explicit exported POLYGON_CONTEXT_ID", async () => {
     const hooks = await createOpenCodeInjectHooks();
     const output = {
       args: {
         command:
-          "export TRELLIS_CONTEXT_ID=manual; python3 ./.trellis/scripts/task.py current",
+          "export POLYGON_CONTEXT_ID=manual; python3 ./.polygon/scripts/task.py current",
       },
     };
 
@@ -303,16 +303,16 @@ describe("opencode bash session context", () => {
     );
 
     expect(output.args.command).toBe(
-      "export TRELLIS_CONTEXT_ID=manual; python3 ./.trellis/scripts/task.py current",
+      "export POLYGON_CONTEXT_ID=manual; python3 ./.polygon/scripts/task.py current",
     );
   });
 
-  it("does not duplicate an explicit env TRELLIS_CONTEXT_ID assignment", async () => {
+  it("does not duplicate an explicit env POLYGON_CONTEXT_ID assignment", async () => {
     const hooks = await createOpenCodeInjectHooks();
     const output = {
       args: {
         command:
-          "env FOO=bar TRELLIS_CONTEXT_ID=manual python3 ./.trellis/scripts/task.py current",
+          "env FOO=bar POLYGON_CONTEXT_ID=manual python3 ./.polygon/scripts/task.py current",
       },
     };
 
@@ -322,16 +322,16 @@ describe("opencode bash session context", () => {
     );
 
     expect(output.args.command).toBe(
-      "env FOO=bar TRELLIS_CONTEXT_ID=manual python3 ./.trellis/scripts/task.py current",
+      "env FOO=bar POLYGON_CONTEXT_ID=manual python3 ./.polygon/scripts/task.py current",
     );
   });
 
-  it("does not duplicate an explicit PowerShell TRELLIS_CONTEXT_ID assignment", async () => {
+  it("does not duplicate an explicit PowerShell POLYGON_CONTEXT_ID assignment", async () => {
     const hooks = await createOpenCodeInjectHooks("win32");
     const output = {
       args: {
         command:
-          "$env:TRELLIS_CONTEXT_ID = 'manual'; python ./.trellis/scripts/task.py current",
+          "$env:POLYGON_CONTEXT_ID = 'manual'; python ./.polygon/scripts/task.py current",
       },
     };
 
@@ -341,15 +341,15 @@ describe("opencode bash session context", () => {
     );
 
     expect(output.args.command).toBe(
-      "$env:TRELLIS_CONTEXT_ID = 'manual'; python ./.trellis/scripts/task.py current",
+      "$env:POLYGON_CONTEXT_ID = 'manual'; python ./.polygon/scripts/task.py current",
     );
   });
 
-  it("does not treat a grep pattern as an explicit TRELLIS_CONTEXT_ID assignment", async () => {
+  it("does not treat a grep pattern as an explicit POLYGON_CONTEXT_ID assignment", async () => {
     const hooks = await createOpenCodeInjectHooks();
     const output = {
       args: {
-        command: "env | sort | grep '^TRELLIS_CONTEXT_ID='",
+        command: "env | sort | grep '^POLYGON_CONTEXT_ID='",
       },
     };
 
@@ -359,7 +359,7 @@ describe("opencode bash session context", () => {
     );
 
     expect(output.args.command).toBe(
-      "export TRELLIS_CONTEXT_ID='opencode_oc-a'; env | sort | grep '^TRELLIS_CONTEXT_ID='",
+      "export POLYGON_CONTEXT_ID='opencode_oc-a'; env | sort | grep '^POLYGON_CONTEXT_ID='",
     );
   });
 });
@@ -395,21 +395,21 @@ interface ChatMessageHooks {
   ) => Promise<void>;
 }
 
-function setupTrellisProject(): string {
-  const dir = mkdtempSync(join(tmpdir(), "trellis-opencode-264-"));
-  const taskDir = join(dir, ".trellis", "tasks", "demo-task");
+function setupPolygonProject(): string {
+  const dir = mkdtempSync(join(tmpdir(), "polygon-opencode-264-"));
+  const taskDir = join(dir, ".polygon", "tasks", "demo-task");
   mkdirSync(taskDir, { recursive: true });
-  mkdirSync(join(dir, ".trellis", ".runtime", "sessions"), { recursive: true });
+  mkdirSync(join(dir, ".polygon", ".runtime", "sessions"), { recursive: true });
   writeFileSync(join(taskDir, "prd.md"), "# Demo PRD\n\nGoal: verify injection.");
   writeFileSync(join(taskDir, "implement.jsonl"), "");
   writeFileSync(join(taskDir, "check.jsonl"), "");
   writeFileSync(
-    join(dir, ".trellis", "workflow.md"),
+    join(dir, ".polygon", "workflow.md"),
     [
       "# Workflow",
       "",
       "[workflow-state:in_progress]",
-      "Active task: <task path>. Dispatch trellis-implement or trellis-check.",
+      "Active task: <task path>. Dispatch polygon-implement or polygon-check.",
       "[/workflow-state:in_progress]",
       "",
     ].join("\n"),
@@ -418,31 +418,31 @@ function setupTrellisProject(): string {
 }
 
 function writeSessionFile(dir: string, key: string, taskRef: string): void {
-  const file = join(dir, ".trellis", ".runtime", "sessions", `${key}.json`);
+  const file = join(dir, ".polygon", ".runtime", "sessions", `${key}.json`);
   writeFileSync(file, JSON.stringify({ current_task: taskRef }, null, 2));
 }
 
 describe("opencode subagent helper", () => {
-  it("isTrellisSubagent matches the three trellis sub-agent names", () => {
-    expect(isTrellisSubagent({ agent: "trellis-implement" })).toBe(true);
-    expect(isTrellisSubagent({ agent: "trellis-check" })).toBe(true);
-    expect(isTrellisSubagent({ agent: "trellis-research" })).toBe(true);
+  it("isPolygonSubagent matches the three polygon sub-agent names", () => {
+    expect(isPolygonSubagent({ agent: "polygon-implement" })).toBe(true);
+    expect(isPolygonSubagent({ agent: "polygon-check" })).toBe(true);
+    expect(isPolygonSubagent({ agent: "polygon-research" })).toBe(true);
   });
 
-  it("isTrellisSubagent rejects unrelated agents", () => {
-    expect(isTrellisSubagent({ agent: "build" })).toBe(false);
-    expect(isTrellisSubagent({ agent: "trellis-implement-extra" })).toBe(false);
-    expect(isTrellisSubagent({ agent: undefined })).toBe(false);
-    expect(isTrellisSubagent({})).toBe(false);
-    expect(isTrellisSubagent(null)).toBe(false);
+  it("isPolygonSubagent rejects unrelated agents", () => {
+    expect(isPolygonSubagent({ agent: "build" })).toBe(false);
+    expect(isPolygonSubagent({ agent: "polygon-implement-extra" })).toBe(false);
+    expect(isPolygonSubagent({ agent: undefined })).toBe(false);
+    expect(isPolygonSubagent({})).toBe(false);
+    expect(isPolygonSubagent(null)).toBe(false);
   });
 });
 
-describe("opencode TrellisContext single-session fallback", () => {
+describe("opencode PolygonContext single-session fallback", () => {
   let dir: string;
 
   beforeEach(() => {
-    dir = setupTrellisProject();
+    dir = setupPolygonProject();
   });
 
   afterEach(() => {
@@ -450,19 +450,19 @@ describe("opencode TrellisContext single-session fallback", () => {
   });
 
   it("returns the only session file when exactly one exists", () => {
-    writeSessionFile(dir, "opencode_sole", ".trellis/tasks/demo-task");
-    const ctx = new TrellisContext(dir);
+    writeSessionFile(dir, "opencode_sole", ".polygon/tasks/demo-task");
+    const ctx = new PolygonContext(dir);
     const active = ctx.getActiveTask({ sessionID: "missing-key" });
 
-    expect(active.taskPath).toBe(".trellis/tasks/demo-task");
+    expect(active.taskPath).toBe(".polygon/tasks/demo-task");
     expect(active.source).toBe("session-fallback:opencode_sole");
     expect(active.stale).toBe(false);
   });
 
   it("refuses to guess when two or more session files exist", () => {
-    writeSessionFile(dir, "opencode_a", ".trellis/tasks/demo-task");
-    writeSessionFile(dir, "opencode_b", ".trellis/tasks/demo-task");
-    const ctx = new TrellisContext(dir);
+    writeSessionFile(dir, "opencode_a", ".polygon/tasks/demo-task");
+    writeSessionFile(dir, "opencode_b", ".polygon/tasks/demo-task");
+    const ctx = new PolygonContext(dir);
     const active = ctx.getActiveTask({ sessionID: "missing-key" });
 
     expect(active.taskPath).toBeNull();
@@ -470,8 +470,8 @@ describe("opencode TrellisContext single-session fallback", () => {
   });
 
   it("returns no task when zero session files exist (Python parity)", () => {
-    // sessions/ exists from setupTrellisProject but contains no files
-    const ctx = new TrellisContext(dir);
+    // sessions/ exists from setupPolygonProject but contains no files
+    const ctx = new PolygonContext(dir);
     const active = ctx.getActiveTask({ sessionID: "missing-key" });
 
     expect(active.taskPath).toBeNull();
@@ -479,9 +479,9 @@ describe("opencode TrellisContext single-session fallback", () => {
   });
 
   it("prefers an exact context-key match over the fallback", () => {
-    writeSessionFile(dir, "opencode_session_exact", ".trellis/tasks/demo-task");
-    writeSessionFile(dir, "opencode_other", ".trellis/tasks/demo-task");
-    const ctx = new TrellisContext(dir);
+    writeSessionFile(dir, "opencode_session_exact", ".polygon/tasks/demo-task");
+    writeSessionFile(dir, "opencode_other", ".polygon/tasks/demo-task");
+    const ctx = new PolygonContext(dir);
     const active = ctx.getActiveTask({ sessionID: "exact" });
 
     // sessionID="exact" maps to "opencode_exact" via buildContextKey; we
@@ -497,7 +497,7 @@ describe("opencode inject-subagent-context (issue #264)", () => {
   let hooks: TaskToolHooks;
 
   beforeEach(async () => {
-    dir = setupTrellisProject();
+    dir = setupPolygonProject();
     hooks = (await injectSubagentContextPlugin({
       directory: dir,
       platform: "linux",
@@ -510,10 +510,10 @@ describe("opencode inject-subagent-context (issue #264)", () => {
   });
 
   it("mutates implement prompt using single-session fallback when sessionID misses", async () => {
-    writeSessionFile(dir, "opencode_sole", ".trellis/tasks/demo-task");
+    writeSessionFile(dir, "opencode_sole", ".polygon/tasks/demo-task");
     const output: TaskToolOutput = {
       args: {
-        subagent_type: "trellis-implement",
+        subagent_type: "polygon-implement",
         prompt: "do the implementation",
       },
     };
@@ -523,13 +523,13 @@ describe("opencode inject-subagent-context (issue #264)", () => {
       output,
     );
 
-    expect(output.args.prompt).toContain("<!-- trellis-hook-injected -->");
+    expect(output.args.prompt).toContain("<!-- polygon-hook-injected -->");
     expect(output.args.prompt).toContain("# Implement Agent Task");
     expect(output.args.prompt).toContain("Demo PRD");
     expect(output.args.prompt).toContain("do the implementation");
     // Marker must be at the top so generated agent definitions can detect
     // successful injection via a prefix check.
-    expect(output.args.prompt.startsWith("<!-- trellis-hook-injected -->")).toBe(
+    expect(output.args.prompt.startsWith("<!-- polygon-hook-injected -->")).toBe(
       true,
     );
   });
@@ -537,18 +537,18 @@ describe("opencode inject-subagent-context (issue #264)", () => {
   it("inlines JSONL-referenced spec content into the implement prompt", async () => {
     // Cover AC #1: "JSONL-referenced context" — the seed-only jsonl path
     // is exercised above; this one verifies a curated entry is inlined.
-    const specPath = join(dir, ".trellis", "spec", "demo.md");
-    mkdirSync(join(dir, ".trellis", "spec"), { recursive: true });
+    const specPath = join(dir, ".polygon", "spec", "demo.md");
+    mkdirSync(join(dir, ".polygon", "spec"), { recursive: true });
     writeFileSync(specPath, "# Demo Spec\n\nUNIQUE_SPEC_MARKER_42");
     writeFileSync(
-      join(dir, ".trellis", "tasks", "demo-task", "implement.jsonl"),
-      JSON.stringify({ file: ".trellis/spec/demo.md", reason: "test" }) + "\n",
+      join(dir, ".polygon", "tasks", "demo-task", "implement.jsonl"),
+      JSON.stringify({ file: ".polygon/spec/demo.md", reason: "test" }) + "\n",
     );
-    writeSessionFile(dir, "opencode_sole", ".trellis/tasks/demo-task");
+    writeSessionFile(dir, "opencode_sole", ".polygon/tasks/demo-task");
 
     const output: TaskToolOutput = {
       args: {
-        subagent_type: "trellis-implement",
+        subagent_type: "polygon-implement",
         prompt: "do the implementation",
       },
     };
@@ -558,8 +558,8 @@ describe("opencode inject-subagent-context (issue #264)", () => {
       output,
     );
 
-    expect(output.args.prompt).toContain("<!-- trellis-hook-injected -->");
-    expect(output.args.prompt).toContain("=== .trellis/spec/demo.md ===");
+    expect(output.args.prompt).toContain("<!-- polygon-hook-injected -->");
+    expect(output.args.prompt).toContain("=== .polygon/spec/demo.md ===");
     expect(output.args.prompt).toContain("UNIQUE_SPEC_MARKER_42");
     expect(output.args.prompt).toContain("Demo PRD");
   });
@@ -569,8 +569,8 @@ describe("opencode inject-subagent-context (issue #264)", () => {
     // Hint is the only resolver.
     const output: TaskToolOutput = {
       args: {
-        subagent_type: "trellis-check",
-        prompt: "Active task: .trellis/tasks/demo-task\n\nplease check",
+        subagent_type: "polygon-check",
+        prompt: "Active task: .polygon/tasks/demo-task\n\nplease check",
       },
     };
 
@@ -579,7 +579,7 @@ describe("opencode inject-subagent-context (issue #264)", () => {
       output,
     );
 
-    expect(output.args.prompt).toContain("<!-- trellis-hook-injected -->");
+    expect(output.args.prompt).toContain("<!-- polygon-hook-injected -->");
     expect(output.args.prompt).toContain("# Check Agent Task");
     expect(output.args.prompt).toContain("Demo PRD");
   });
@@ -587,16 +587,16 @@ describe("opencode inject-subagent-context (issue #264)", () => {
   it("Active task hint takes precedence over single-session fallback", async () => {
     // Set up TWO matches: a session file pointing at demo-task AND a hint
     // pointing at a different task path. Hint should win.
-    writeSessionFile(dir, "opencode_sole", ".trellis/tasks/another-task");
-    const hintTask = join(dir, ".trellis", "tasks", "hint-task");
+    writeSessionFile(dir, "opencode_sole", ".polygon/tasks/another-task");
+    const hintTask = join(dir, ".polygon", "tasks", "hint-task");
     mkdirSync(hintTask, { recursive: true });
     writeFileSync(join(hintTask, "prd.md"), "# Hint PRD\n\nfrom hint");
     writeFileSync(join(hintTask, "implement.jsonl"), "");
 
     const output: TaskToolOutput = {
       args: {
-        subagent_type: "trellis-implement",
-        prompt: "Active task: .trellis/tasks/hint-task\n\ngo",
+        subagent_type: "polygon-implement",
+        prompt: "Active task: .polygon/tasks/hint-task\n\ngo",
       },
     };
 
@@ -609,10 +609,10 @@ describe("opencode inject-subagent-context (issue #264)", () => {
     expect(output.args.prompt).not.toContain("Demo PRD");
   });
 
-  it("emits the trellis-hook-injected marker for research agent too", async () => {
+  it("emits the polygon-hook-injected marker for research agent too", async () => {
     const output: TaskToolOutput = {
       args: {
-        subagent_type: "trellis-research",
+        subagent_type: "polygon-research",
         prompt: "investigate something",
       },
     };
@@ -622,14 +622,14 @@ describe("opencode inject-subagent-context (issue #264)", () => {
       output,
     );
 
-    expect(output.args.prompt).toContain("<!-- trellis-hook-injected -->");
+    expect(output.args.prompt).toContain("<!-- polygon-hook-injected -->");
     expect(output.args.prompt).toContain("# Research Agent Task");
   });
 
   it("skips when no task can be resolved through any path", async () => {
     const output: TaskToolOutput = {
       args: {
-        subagent_type: "trellis-implement",
+        subagent_type: "polygon-implement",
         prompt: "implement without context",
       },
     };
@@ -648,7 +648,7 @@ describe("opencode chat.message subagent skip (issue #264)", () => {
   let dir: string;
 
   beforeEach(() => {
-    dir = setupTrellisProject();
+    dir = setupPolygonProject();
   });
 
   afterEach(() => {
@@ -657,7 +657,7 @@ describe("opencode chat.message subagent skip (issue #264)", () => {
     contextCollector.clear("main-session");
   });
 
-  it("session-start.js early-returns when input.agent is a trellis sub-agent", async () => {
+  it("session-start.js early-returns when input.agent is a polygon sub-agent", async () => {
     const hooks = (await sessionStartPlugin({
       directory: dir,
       client: undefined,
@@ -665,7 +665,7 @@ describe("opencode chat.message subagent skip (issue #264)", () => {
     const parts: ChatMessagePart[] = [{ type: "text", text: "original" }];
 
     await hooks["chat.message"](
-      { sessionID: "subagent-session", agent: "trellis-implement" },
+      { sessionID: "subagent-session", agent: "polygon-implement" },
       { parts },
     );
 
@@ -674,13 +674,13 @@ describe("opencode chat.message subagent skip (issue #264)", () => {
     expect(parts[0].metadata).toBeUndefined();
   });
 
-  it("session-start.js skips trellis-check and trellis-research", async () => {
+  it("session-start.js skips polygon-check and polygon-research", async () => {
     const hooks = (await sessionStartPlugin({
       directory: dir,
       client: undefined,
     })) as ChatMessageHooks;
 
-    for (const agent of ["trellis-check", "trellis-research"]) {
+    for (const agent of ["polygon-check", "polygon-research"]) {
       const parts: ChatMessagePart[] = [{ type: "text", text: "untouched" }];
       await hooks["chat.message"](
         { sessionID: "subagent-session", agent },
@@ -690,14 +690,14 @@ describe("opencode chat.message subagent skip (issue #264)", () => {
     }
   });
 
-  it("inject-workflow-state.js early-returns when input.agent is a trellis sub-agent", async () => {
+  it("inject-workflow-state.js early-returns when input.agent is a polygon sub-agent", async () => {
     const hooks = (await injectWorkflowStatePlugin({
       directory: dir,
     })) as ChatMessageHooks;
     const parts: ChatMessagePart[] = [{ type: "text", text: "original" }];
 
     await hooks["chat.message"](
-      { sessionID: "subagent-session", agent: "trellis-implement" },
+      { sessionID: "subagent-session", agent: "polygon-implement" },
       { parts },
     );
 

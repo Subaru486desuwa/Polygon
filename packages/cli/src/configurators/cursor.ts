@@ -14,8 +14,8 @@ import { getAllAgents, getHooksConfig } from "../templates/cursor/index.js";
 
 /**
  * Configure Cursor:
- * - commands/ — start + finish-work as slash commands (trellis- prefix, flat)
- * - skills/trellis-{name}/SKILL.md — other 5 as auto-triggered skills
+ * - commands/ — start + finish-work as slash commands (polygon- prefix, flat)
+ * - skills/polygon-{name}/SKILL.md — other 5 as auto-triggered skills
  * - agents/{name}.md — sub-agent definitions
  * - hooks/*.py — shared hook scripts
  * - hooks.json — hook configuration (separate file, not settings.json)
@@ -29,7 +29,7 @@ export async function configureCursor(cwd: string): Promise<void> {
   ensureDir(commandsDir);
   for (const cmd of resolveCommands(ctx)) {
     await writeFile(
-      path.join(commandsDir, `trellis-${cmd.name}.md`),
+      path.join(commandsDir, `polygon-${cmd.name}.md`),
       cmd.content,
     );
   }

@@ -39,13 +39,13 @@ describe("CONFIG_DIRS", () => {
 });
 
 describe("ALL_MANAGED_DIRS", () => {
-  it("starts with .trellis", () => {
-    expect(ALL_MANAGED_DIRS[0]).toBe(".trellis");
+  it("starts with .polygon", () => {
+    expect(ALL_MANAGED_DIRS[0]).toBe(".polygon");
   });
 
-  it("contains .trellis plus all managed dirs", () => {
+  it("contains .polygon plus all managed dirs", () => {
     expect(ALL_MANAGED_DIRS).toEqual([
-      ".trellis",
+      ".polygon",
       ...new Set(PLATFORM_MANAGED_DIRS),
     ]);
   });
@@ -70,12 +70,12 @@ describe("isManagedPath", () => {
     expect(isManagedPath(".codex/agents/check.toml")).toBe(true);
     expect(isManagedPath(".agent/workflows/start.md")).toBe(true);
     expect(isManagedPath(".kiro/skills/start/SKILL.md")).toBe(true);
-    expect(isManagedPath(".windsurf/workflows/trellis-start.md")).toBe(true);
+    expect(isManagedPath(".windsurf/workflows/polygon-start.md")).toBe(true);
     expect(isManagedPath(".github/prompts/start.prompt.md")).toBe(true);
     expect(isManagedPath(".github/copilot/hooks/session-start.py")).toBe(true);
-    expect(isManagedPath(".github/hooks/trellis.json")).toBe(true);
-    expect(isManagedPath(".pi/extensions/trellis/index.ts")).toBe(true);
-    expect(isManagedPath(".pi/prompts/trellis-continue.md")).toBe(true);
+    expect(isManagedPath(".github/hooks/polygon.json")).toBe(true);
+    expect(isManagedPath(".pi/extensions/polygon/index.ts")).toBe(true);
+    expect(isManagedPath(".pi/prompts/polygon-continue.md")).toBe(true);
   });
 
   // Positive: exact match (startsWith(d + "/") = false, === d = true)
@@ -90,19 +90,19 @@ describe("isManagedPath", () => {
     expect(isManagedPath(".windsurf/workflows")).toBe(true);
     expect(isManagedPath(".github/prompts")).toBe(true);
     expect(isManagedPath(".github/hooks")).toBe(true);
-    expect(isManagedPath(".trellis")).toBe(true);
+    expect(isManagedPath(".polygon")).toBe(true);
   });
 
-  // Positive: .trellis hardcoded paths
-  it("matches .trellis sub-paths", () => {
-    expect(isManagedPath(".trellis/spec")).toBe(true);
-    expect(isManagedPath(".trellis/tasks/some-task")).toBe(true);
+  // Positive: .polygon hardcoded paths
+  it("matches .polygon sub-paths", () => {
+    expect(isManagedPath(".polygon/spec")).toBe(true);
+    expect(isManagedPath(".polygon/tasks/some-task")).toBe(true);
   });
 
   // Boundary: prefix-similar but NOT a sub-path (no / separator after name)
   it("rejects prefix-similar non-sub-paths", () => {
     expect(isManagedPath(".claude-backup")).toBe(false);
-    expect(isManagedPath(".trellis-old")).toBe(false);
+    expect(isManagedPath(".polygon-old")).toBe(false);
     expect(isManagedPath(".cursorignore")).toBe(false);
     expect(isManagedPath(".opencode-v2")).toBe(false);
     expect(isManagedPath(".agents/skills-backup")).toBe(false);
@@ -123,7 +123,7 @@ describe("isManagedPath", () => {
   // Boundary: path traversal
   it("rejects path traversal", () => {
     expect(isManagedPath("../.claude")).toBe(false);
-    expect(isManagedPath("../.trellis/spec")).toBe(false);
+    expect(isManagedPath("../.polygon/spec")).toBe(false);
   });
 
   // Boundary: unrelated directories
@@ -137,18 +137,18 @@ describe("isManagedPath", () => {
   // Windows path separator (bug fix verification)
   it("matches Windows-style backslash paths", () => {
     expect(isManagedPath(".claude\\commands\\foo.md")).toBe(true);
-    expect(isManagedPath(".trellis\\spec\\backend")).toBe(true);
+    expect(isManagedPath(".polygon\\spec\\backend")).toBe(true);
     expect(isManagedPath(".agents\\skills\\start\\SKILL.md")).toBe(true);
     expect(isManagedPath(".codex\\agents\\check.toml")).toBe(true);
     expect(isManagedPath(".agent\\workflows\\start.md")).toBe(true);
     expect(isManagedPath(".kiro\\skills\\start\\SKILL.md")).toBe(true);
-    expect(isManagedPath(".windsurf\\workflows\\trellis-start.md")).toBe(true);
+    expect(isManagedPath(".windsurf\\workflows\\polygon-start.md")).toBe(true);
     expect(isManagedPath(".github\\prompts\\start.prompt.md")).toBe(true);
     expect(isManagedPath(".github\\copilot\\hooks\\session-start.py")).toBe(
       true,
     );
-    expect(isManagedPath(".github\\hooks\\trellis.json")).toBe(true);
-    expect(isManagedPath(".pi\\extensions\\trellis\\index.ts")).toBe(true);
+    expect(isManagedPath(".github\\hooks\\polygon.json")).toBe(true);
+    expect(isManagedPath(".pi\\extensions\\polygon\\index.ts")).toBe(true);
   });
 
   // Mixed separators
@@ -168,8 +168,8 @@ describe("isManagedRootDir", () => {
     }
   });
 
-  it("matches .trellis", () => {
-    expect(isManagedRootDir(".trellis")).toBe(true);
+  it("matches .polygon", () => {
+    expect(isManagedRootDir(".polygon")).toBe(true);
   });
 
   it("matches shared agent skills layer", () => {
@@ -186,7 +186,7 @@ describe("isManagedRootDir", () => {
 
   it("rejects sub-paths (not a root dir)", () => {
     expect(isManagedRootDir(".claude/commands")).toBe(false);
-    expect(isManagedRootDir(".trellis/spec")).toBe(false);
+    expect(isManagedRootDir(".polygon/spec")).toBe(false);
   });
 
   it("rejects unrelated directories", () => {
@@ -364,18 +364,18 @@ describe("collectPlatformTemplates", () => {
     for (const [id, skillRoot] of Object.entries(SKILL_ROOTS)) {
       const result = collectPlatformTemplates(id as AITool);
       expect(result, `${id} should have template tracking`).toBeInstanceOf(Map);
-      expect(result?.has(`${skillRoot}/trellis-meta/SKILL.md`)).toBe(true);
+      expect(result?.has(`${skillRoot}/polygon-meta/SKILL.md`)).toBe(true);
       expect(
         result?.has(
-          `${skillRoot}/trellis-meta/references/local-architecture/overview.md`,
+          `${skillRoot}/polygon-meta/references/local-architecture/overview.md`,
         ),
       ).toBe(true);
       expect(
-        result?.has(`${skillRoot}/trellis-spec-bootstrap/SKILL.md`),
+        result?.has(`${skillRoot}/polygon-spec-bootstrap/SKILL.md`),
       ).toBe(true);
       expect(
         result?.has(
-          `${skillRoot}/trellis-spec-bootstrap/references/spec-writing.md`,
+          `${skillRoot}/polygon-spec-bootstrap/references/spec-writing.md`,
         ),
       ).toBe(true);
     }
@@ -404,16 +404,16 @@ describe("collectPlatformTemplates", () => {
     expect(result?.has(".github/prompts/finish-work.prompt.md")).toBe(true);
     expect(result?.has(".github/prompts/continue.prompt.md")).toBe(true);
     expect(result?.has(".github/copilot/hooks.json")).toBe(true);
-    expect(result?.has(".github/hooks/trellis.json")).toBe(true);
+    expect(result?.has(".github/hooks/polygon.json")).toBe(true);
   });
 
   it("pi collectTemplates includes prompts, agents, extension, and settings", () => {
     const result = collectPlatformTemplates("pi");
     expect(result).toBeInstanceOf(Map);
-    expect(result?.has(".pi/prompts/trellis-start.md")).toBe(false);
-    expect(result?.has(".pi/prompts/trellis-finish-work.md")).toBe(true);
-    expect(result?.has(".pi/agents/trellis-implement.md")).toBe(true);
-    expect(result?.has(".pi/extensions/trellis/index.ts")).toBe(true);
+    expect(result?.has(".pi/prompts/polygon-start.md")).toBe(false);
+    expect(result?.has(".pi/prompts/polygon-finish-work.md")).toBe(true);
+    expect(result?.has(".pi/agents/polygon-implement.md")).toBe(true);
+    expect(result?.has(".pi/extensions/polygon/index.ts")).toBe(true);
     expect(result?.has(".pi/settings.json")).toBe(true);
   });
 });

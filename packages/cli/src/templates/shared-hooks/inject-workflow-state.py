@@ -23,7 +23,7 @@ hook entry point). Written to each platform's hooks directory via
 writeSharedHooks() at init time.
 
 Silent exit 0 cases (no output):
-  - No .trellis/ directory found (not a Polygon project)
+  - No .polygon/ directory found (not a Polygon project)
   - task.json malformed or missing status
 """
 from __future__ import annotations
@@ -67,7 +67,7 @@ message above this hook output, that message is your only job.
 - Ignore all Polygon workflow guidance below this notice.
 - Do NOT call task.py start, task.py add-context, or task.py archive.
 - Do NOT call wait_agent or spawn_agent.
-- Do NOT modify .trellis/tasks/* or any other file unless the parent message
+- Do NOT modify .polygon/tasks/* or any other file unless the parent message
   explicitly asks for that.
 
 If you are the main interactive Codex session and the user is typing at the
@@ -77,41 +77,41 @@ terminal with no parent agent, use the workflow guidance below normally.
 
 # Bootstrap notice for Codex while the session has no active task. Replaces the
 # heavyweight SessionStart context injection — instead of pushing 9.5 KB of
-# workflow text up front, we just nudge the AI to read the `trellis-start` skill once.
+# workflow text up front, we just nudge the AI to read the `polygon-start` skill once.
 # The nudge keeps showing up while status == "no_task" (cheap text, AI won't
 # re-read after the first time). Once a task is created the breadcrumb status
 # flips and this notice stops appearing automatically. Sub-agents are warded
 # off by the <sub-agent-notice> above plus the explicit exemption below.
-CODEX_NO_TASK_BOOTSTRAP_NOTICE = """<trellis-bootstrap>
+CODEX_NO_TASK_BOOTSTRAP_NOTICE = """<polygon-bootstrap>
 You are running in a Polygon-managed Codex session and there is no active task yet.
-If you have not already loaded Polygon context this session, read the `trellis-start` skill once:
+If you have not already loaded Polygon context this session, read the `polygon-start` skill once:
 
-  $trellis-start
+  $polygon-start
 
-(equivalent to reading `.agents/skills/trellis-start/SKILL.md` and following its Steps 1-3)
+(equivalent to reading `.agents/skills/polygon-start/SKILL.md` and following its Steps 1-3)
 
 The skill walks you through workflow.md, dev profile, git status, active tasks, and spec
 indexes. Then route the user's request per the <workflow-state> A/B/C rules below.
 
 Sub-agent exemption: if you are a sub-agent (spawned via spawn_agent with a parent task
-message), DO NOT read `$trellis-start`. Execute the parent message directly as instructed by the
+message), DO NOT read `$polygon-start`. Execute the parent message directly as instructed by the
 <sub-agent-notice> above.
-</trellis-bootstrap>"""
+</polygon-bootstrap>"""
 
 
 # ---------------------------------------------------------------------------
 # CWD-robust Polygon root discovery (fixes hook-path-robustness for this hook)
 # ---------------------------------------------------------------------------
 
-def find_trellis_root(start: Path) -> Optional[Path]:
-    """Walk up from start to find directory containing .trellis/.
+def find_polygon_root(start: Path) -> Optional[Path]:
+    """Walk up from start to find directory containing .polygon/.
 
     Handles CWD drift: subdirectory launches, monorepo packages, etc.
-    Returns None if no .trellis/ found (silent no-op).
+    Returns None if no .polygon/ found (silent no-op).
     """
     cur = start.resolve()
     while cur != cur.parent:
-        if (cur / ".trellis").is_dir():
+        if (cur / ".polygon").is_dir():
             return cur
         cur = cur.parent
     return None
@@ -158,7 +158,7 @@ def _detect_platform(input_data: dict) -> str | None:
 
 
 def _resolve_active_task(root: Path, input_data: dict):
-    scripts_dir = root / ".trellis" / "scripts"
+    scripts_dir = root / ".polygon" / "scripts"
     if str(scripts_dir) not in sys.path:
         sys.path.insert(0, str(scripts_dir))
     from common.active_task import resolve_active_task  # type: ignore[import-not-found]
@@ -213,7 +213,7 @@ def load_breadcrumbs(root: Path) -> dict[str, str]:
     in build_breadcrumb so users see the broken state and fix
     workflow.md, rather than the hook silently masking the issue.
     """
-    workflow = root / ".trellis" / "workflow.md"
+    workflow = root / ".polygon" / "workflow.md"
     if not workflow.is_file():
         return {}
     try:
@@ -230,21 +230,21 @@ def load_breadcrumbs(root: Path) -> dict[str, str]:
     return result
 
 
-def _read_trellis_config(root: Path) -> dict:
-    """Load .trellis/config.yaml via the bundled trellis_config helper.
+def _read_polygon_config(root: Path) -> dict:
+    """Load .polygon/config.yaml via the bundled polygon_config helper.
 
-    The helper lives in .trellis/scripts/common; the hook lives outside the
+    The helper lives in .polygon/scripts/common; the hook lives outside the
     scripts tree, so we extend sys.path before importing.
     """
-    scripts_dir = root / ".trellis" / "scripts"
+    scripts_dir = root / ".polygon" / "scripts"
     if str(scripts_dir) not in sys.path:
         sys.path.insert(0, str(scripts_dir))
     try:
-        from common.trellis_config import read_trellis_config  # type: ignore[import-not-found]
+        from common.polygon_config import read_polygon_config  # type: ignore[import-not-found]
     except Exception:
         return {}
     try:
-        return read_trellis_config(root)
+        return read_polygon_config(root)
     except Exception:
         return {}
 
@@ -252,7 +252,7 @@ def _read_trellis_config(root: Path) -> dict:
 def _codex_mode_banner(config: dict) -> str:
     """Emit a `<codex-mode>` banner for the additionalContext payload.
 
-    Reads `codex.dispatch_mode` from .trellis/config.yaml; defaults to
+    Reads `codex.dispatch_mode` from .polygon/config.yaml; defaults to
     `inline` when missing or invalid because Codex sub-agents run with
     `fork_turns="none"` isolation and can't inherit the parent session's
     task context. The banner makes the active mode explicit to Codex AI
@@ -271,7 +271,7 @@ def _codex_mode_banner(config: dict) -> str:
 
 
 def _ultracode_enabled(config: dict) -> bool:
-    """True when .trellis/config.yaml has ``ultracode.enabled`` set truthy.
+    """True when .polygon/config.yaml has ``ultracode.enabled`` set truthy.
 
     Drives the config-persistent channel of ultracode fan-out: when on,
     ``resolve_breadcrumb_key`` returns the ``{status}-ultra`` breadcrumb variant
@@ -379,7 +379,7 @@ def build_breadcrumb(
 # ---------------------------------------------------------------------------
 
 def main() -> int:
-    if os.environ.get("TRELLIS_HOOKS") == "0" or os.environ.get("TRELLIS_DISABLE_HOOKS") == "1":
+    if os.environ.get("POLYGON_HOOKS") == "0" or os.environ.get("POLYGON_DISABLE_HOOKS") == "1":
         return 0
 
     try:
@@ -390,13 +390,13 @@ def main() -> int:
     cwd_str = data.get("cwd") or os.getcwd()
     cwd = Path(cwd_str)
 
-    root = find_trellis_root(cwd)
+    root = find_polygon_root(cwd)
     if root is None:
         return 0  # not a Polygon project
 
     templates = load_breadcrumbs(root)
     platform = _detect_platform(data)
-    config = _read_trellis_config(root)
+    config = _read_polygon_config(root)
     task = get_active_task(root, data)
     # Refresh this session's last_seen_at (no-op if it has no session file) so the
     # single-session fallback's staleness gate never ages out a live window.
@@ -411,7 +411,7 @@ def main() -> int:
         pass
     if task is None:
         # No active task — still emit a breadcrumb nudging AI toward
-        # trellis-brainstorm + task.py create when user describes real work.
+        # polygon-brainstorm + task.py create when user describes real work.
         no_task_key = resolve_breadcrumb_key("no_task", platform, config)
         breadcrumb = build_breadcrumb(
             None, "no_task", templates, breadcrumb_key=no_task_key

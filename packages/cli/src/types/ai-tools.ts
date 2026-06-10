@@ -72,7 +72,7 @@ export type CliFlag =
  */
 export interface TemplateContext {
   /** Prefix for cross-referencing other commands/skills */
-  cmdRefPrefix: "/trellis:" | "/trellis-" | "$" | "/" | "/skill trellis-";
+  cmdRefPrefix: "/polygon:" | "/polygon-" | "$" | "/" | "/skill polygon-";
   /** Description of AI executor actions shown in role tables */
   executorAI:
     | "Bash scripts or Task calls"
@@ -143,7 +143,7 @@ export const AI_TOOLS: Record<AITool, AIToolConfig> = {
     defaultChecked: true,
     hasPythonHooks: true,
     templateContext: {
-      cmdRefPrefix: "/trellis:",
+      cmdRefPrefix: "/polygon:",
       executorAI: "Bash scripts or Task calls",
       userActionLabel: "Slash commands",
       agentCapable: true,
@@ -159,7 +159,7 @@ export const AI_TOOLS: Record<AITool, AIToolConfig> = {
     defaultChecked: false,
     hasPythonHooks: true,
     templateContext: {
-      cmdRefPrefix: "/trellis-",
+      cmdRefPrefix: "/polygon-",
       executorAI: "Bash scripts or Task calls",
       userActionLabel: "Slash commands",
       agentCapable: true,
@@ -175,7 +175,7 @@ export const AI_TOOLS: Record<AITool, AIToolConfig> = {
     defaultChecked: false,
     hasPythonHooks: false,
     templateContext: {
-      cmdRefPrefix: "/trellis:",
+      cmdRefPrefix: "/polygon:",
       executorAI: "Bash scripts or Task calls",
       userActionLabel: "Slash commands",
       agentCapable: true,
@@ -208,7 +208,7 @@ export const AI_TOOLS: Record<AITool, AIToolConfig> = {
     defaultChecked: false,
     hasPythonHooks: false,
     templateContext: {
-      cmdRefPrefix: "/trellis:",
+      cmdRefPrefix: "/polygon:",
       executorAI: "Bash scripts or file reads",
       userActionLabel: "Workflows",
       agentCapable: false,
@@ -242,7 +242,7 @@ export const AI_TOOLS: Record<AITool, AIToolConfig> = {
     defaultChecked: false,
     hasPythonHooks: true,
     templateContext: {
-      cmdRefPrefix: "/trellis:",
+      cmdRefPrefix: "/polygon:",
       executorAI: "Bash scripts or tool calls",
       userActionLabel: "Slash commands",
       agentCapable: true,
@@ -276,7 +276,7 @@ export const AI_TOOLS: Record<AITool, AIToolConfig> = {
     defaultChecked: false,
     hasPythonHooks: false,
     templateContext: {
-      cmdRefPrefix: "/trellis-",
+      cmdRefPrefix: "/polygon-",
       executorAI: "Bash scripts or file reads",
       userActionLabel: "Workflows",
       agentCapable: false,
@@ -308,7 +308,7 @@ export const AI_TOOLS: Record<AITool, AIToolConfig> = {
     defaultChecked: false,
     hasPythonHooks: true,
     templateContext: {
-      cmdRefPrefix: "/trellis:",
+      cmdRefPrefix: "/polygon:",
       executorAI: "Bash scripts or Task calls",
       userActionLabel: "Slash commands",
       agentCapable: true,
@@ -346,7 +346,7 @@ export const AI_TOOLS: Record<AITool, AIToolConfig> = {
     defaultChecked: false,
     hasPythonHooks: true,
     templateContext: {
-      cmdRefPrefix: "/trellis-",
+      cmdRefPrefix: "/polygon-",
       executorAI: "Bash scripts or Task calls",
       userActionLabel: "Slash commands",
       agentCapable: true,
@@ -362,7 +362,7 @@ export const AI_TOOLS: Record<AITool, AIToolConfig> = {
     defaultChecked: false,
     hasPythonHooks: false,
     templateContext: {
-      cmdRefPrefix: "/trellis-",
+      cmdRefPrefix: "/polygon-",
       executorAI: "Bash scripts or tool calls",
       userActionLabel: "Slash commands",
       agentCapable: true,
@@ -378,7 +378,7 @@ export const AI_TOOLS: Record<AITool, AIToolConfig> = {
     defaultChecked: false,
     hasPythonHooks: false,
     templateContext: {
-      cmdRefPrefix: "/skill trellis-",
+      cmdRefPrefix: "/skill polygon-",
       executorAI: "Bash scripts or tool calls",
       userActionLabel: "Skills",
       agentCapable: true,

@@ -5,5 +5,5 @@
   "recommendMigrate": false,
   "changelog": "**Bug Fixes:**\n- fix(cli): correct iFlow SessionStart hook matcher from `compact` to `compress` to match actual Claude Code event name",
   "migrations": [],
-  "notes": "Run `trellis update` to sync the corrected hook matcher to your project."
+  "notes": "Run `polygon update` to sync the corrected hook matcher to your project."
 }

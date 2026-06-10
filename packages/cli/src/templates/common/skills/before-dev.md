@@ -4,7 +4,7 @@ Execute these steps:
 
 1. **Discover packages and their spec layers**:
    ```bash
-   python3 ./.trellis/scripts/get_context.py --mode packages
+   python3 ./.polygon/scripts/get_context.py --mode packages
    ```
 
 2. **Identify which specs apply** to your task based on:
@@ -13,7 +13,7 @@ Execute these steps:
 
 3. **Read the spec index** for each relevant module:
    ```bash
-   cat .trellis/spec/<package>/<layer>/index.md
+   cat .polygon/spec/<package>/<layer>/index.md
    ```
    Follow the **"Pre-Development Checklist"** section in the index.
 
@@ -21,7 +21,7 @@ Execute these steps:
 
 5. **Always read shared guides**:
    ```bash
-   cat .trellis/spec/guides/index.md
+   cat .polygon/spec/guides/index.md
    ```
 
 6. Understand the coding standards and patterns you need to follow, then proceed with your development plan.
