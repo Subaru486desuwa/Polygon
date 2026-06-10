@@ -11,7 +11,7 @@
 
 <p align="center">
 <a href="https://www.npmjs.com/package/@subaru486/polygon"><img src="https://img.shields.io/npm/v/@subaru486/polygon.svg?style=flat-square&color=2563eb" alt="npm version" /></a>
-<a href="https://github.com/Subaru486desuwa/Trellis/blob/main/LICENSE"><img src="https://img.shields.io/badge/license-AGPL--3.0-16a34a.svg?style=flat-square" alt="license" /></a>
+<a href="https://github.com/Subaru486desuwa/Polygon/blob/main/LICENSE"><img src="https://img.shields.io/badge/license-AGPL--3.0-16a34a.svg?style=flat-square" alt="license" /></a>
 <a href="https://github.com/mindfoldhq/trellis"><img src="https://img.shields.io/badge/fork%20of-mindfoldhq%2Ftrellis-6b7280.svg?style=flat-square" alt="fork of trellis" /></a>
 </p>
 
@@ -29,13 +29,13 @@ AI 编程代理每个会话都从零开始 —— 不记得你的项目、约定
 npm install -g @subaru486/polygon
 ```
 
-安装后 `polygon`、`trellis`、`tl` 三个命令等价。
+安装后 `polygon` 命令。
 
 ## 快速开始
 
 ```bash
 cd your-project
-trellis init -y        # 默认部署精简版 claude+codex 配置
+polygon init -y        # 默认部署精简版 claude+codex 配置
 ```
 
 之后直接在 AI 编程代理里用自然语言描述需求即可。注入的面包屑会让代理自行判断这一轮的真实规模：
@@ -47,14 +47,14 @@ trellis init -y        # 默认部署精简版 claude+codex 配置
 
 | 阶段 | 做什么 | 持久化到 |
 |---|---|---|
-| Plan | brainstorm + 调研 → PRD | `.trellis/tasks/<task>/prd.md` |
+| Plan | brainstorm + 调研 → PRD | `.polygon/tasks/<task>/prd.md` |
 | Execute | 主会话内实现；lint / 类型检查 / 测试 | 你的代码 + `activity.jsonl` |
-| Finish | 沉淀经验 → commit → 归档 | `.trellis/spec/`、journal、任务归档 |
+| Finish | 沉淀经验 → commit → 归档 | `.polygon/spec/`、journal、任务归档 |
 
 ## 多 LLM 活动日志
 
 ```bash
-python3 .trellis/scripts/task.py activity-log
+python3 .polygon/scripts/task.py activity-log
 # 2026-06-10T04:40:40Z  [claude/-]               start: task started
 # 2026-06-10T04:40:51Z  [claude/claude-fable-5]  implement: archive smoke via updated workflow
 # 2026-06-10T04:41:02Z  [claude/-]               finish: task archived

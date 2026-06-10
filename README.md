@@ -11,7 +11,7 @@
 
 <p align="center">
 <a href="https://www.npmjs.com/package/@subaru486/polygon"><img src="https://img.shields.io/npm/v/@subaru486/polygon.svg?style=flat-square&color=2563eb" alt="npm version" /></a>
-<a href="https://github.com/Subaru486desuwa/Trellis/blob/main/LICENSE"><img src="https://img.shields.io/badge/license-AGPL--3.0-16a34a.svg?style=flat-square" alt="license" /></a>
+<a href="https://github.com/Subaru486desuwa/Polygon/blob/main/LICENSE"><img src="https://img.shields.io/badge/license-AGPL--3.0-16a34a.svg?style=flat-square" alt="license" /></a>
 <a href="https://github.com/mindfoldhq/trellis"><img src="https://img.shields.io/badge/fork%20of-mindfoldhq%2Ftrellis-6b7280.svg?style=flat-square" alt="fork of trellis" /></a>
 </p>
 
@@ -29,13 +29,13 @@ AI coding agents start every session from scratch — no memory of your project,
 npm install -g @subaru486/polygon
 ```
 
-This installs three equivalent commands: `polygon`, `trellis`, and `tl`.
+This installs three equivalent commands: `polygon` command.
 
 ## Quick start
 
 ```bash
 cd your-project
-trellis init -y        # deploys the slim claude+codex setup by default
+polygon init -y        # deploys the slim claude+codex setup by default
 ```
 
 Then just describe what you want in your AI coding agent. The injected breadcrumb tells the agent to judge the turn's real size itself:
@@ -47,14 +47,14 @@ The workflow in three phases:
 
 | Phase | What happens | Persisted to |
 |---|---|---|
-| Plan | brainstorm + research → PRD | `.trellis/tasks/<task>/prd.md` |
+| Plan | brainstorm + research → PRD | `.polygon/tasks/<task>/prd.md` |
 | Execute | implement in the main session; lint / type-check / tests | your code + `activity.jsonl` |
-| Finish | capture learnings → commit → archive | `.trellis/spec/`, journal, task archive |
+| Finish | capture learnings → commit → archive | `.polygon/spec/`, journal, task archive |
 
 ## Multi-LLM activity log
 
 ```bash
-python3 .trellis/scripts/task.py activity-log
+python3 .polygon/scripts/task.py activity-log
 # 2026-06-10T04:40:40Z  [claude/-]               start: task started
 # 2026-06-10T04:40:51Z  [claude/claude-fable-5]  implement: archive smoke via updated workflow
 # 2026-06-10T04:41:02Z  [claude/-]               finish: task archived
