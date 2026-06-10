@@ -378,6 +378,10 @@ def cmd_archive(args: argparse.Namespace) -> int:
             data["completedAt"] = today
             write_json(task_json_path, data)
 
+            # Multi-LLM log: stamp the finish before the dir moves to archive/.
+            from .activity import append_activity
+            append_activity(task_dir, "finish", "task archived")
+
             # Handle subtask relationships on archive.
             # Keep this task in its parent's children list so progress
             # counters (children_progress) stay consistent — children

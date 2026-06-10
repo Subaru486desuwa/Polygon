@@ -37,6 +37,28 @@ python3 ./.trellis/scripts/task.py create-pr [name] [--dry-run]
 
 > `task.py --help` has the authoritative list. Session pointers live under `.trellis/.runtime/sessions/`.
 
+### Activity Log (multi-LLM)
+
+Per-task `activity.jsonl` — append-only record of *which LLM (platform/model) did what, when*, for cross-LLM handoff: an agent picking up a task reads what a prior agent already did and decided, without sharing a conversation.
+
+```bash
+python3 ./.trellis/scripts/task.py activity-append [<name>] --action <verb> [--note "<text>"]
+python3 ./.trellis/scripts/task.py activity-log [<name>]    # readable timeline
+```
+
+- **Auto-stamped** on phase transitions — `start`/`archive` write entries; journal and `task.json` `meta.agents[]` record the acting platform/model.
+- **Manual milestones** — stamp `decision` / `handoff` at points worth preserving for the next agent.
+- **Resolution** — `platform` auto-derives from `TRELLIS_CONTEXT_ID`; `model` is best-effort (pass `--model` or set `TRELLIS_ACTIVITY_MODEL`, else null).
+
+[codex-sub-agent, codex-inline]
+**Codex handoff protocol** (hooks don't auto-stamp Codex — be explicit):
+1. On pickup: `task.py activity-log <name>`, then read `prd.md` + `research/`.
+2. On each meaningful step: `task.py activity-append <name> --platform codex --action <verb> --note "<what>"`.
+3. On commit: add the trailer `Co-Authored-By: Codex <noreply@openai.com>`.
+[/codex-sub-agent, codex-inline]
+
+**Claude dispatching Codex**: when a Codex job returns, write its output into the task dir, stamp `activity-append <name> --platform codex --action <verb> --note "via codex:rescue"` on its behalf (ambient session id auto-drops for cross-platform stamps; pass `--session <codex-job-id>` if known), and add the `Co-Authored-By: Codex` trailer.
+
 ### Workspace System
 
 Session records under `.trellis/workspace/<developer>/journal-N.md` (auto-rotates at 2000 lines):

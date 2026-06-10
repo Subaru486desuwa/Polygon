@@ -11,6 +11,8 @@ Usage:
     python3 task.py start <dir>                 # Set active task
     python3 task.py current [--source]          # Show active task
     python3 task.py finish                      # Clear active task
+    python3 task.py activity-append [<dir>] --action <a> [--note <n>]  # Log multi-LLM activity
+    python3 task.py activity-log [<dir>]        # Print task activity timeline
     python3 task.py set-branch <dir> <branch>   # Set git branch
     python3 task.py set-base-branch <dir> <branch>  # Set PR target branch
     python3 task.py set-scope <dir> <scope>     # Set scope for PR title
@@ -43,6 +45,7 @@ from common.active_task import (
     set_active_task,
 )
 from common.io import read_json, write_json
+from common.activity import append_activity, read_activity
 from common.task_utils import resolve_task_dir, run_task_hooks
 from common.tasks import iter_active_tasks, children_progress
 
@@ -115,6 +118,7 @@ def cmd_start(args: argparse.Namespace) -> int:
                 data["status"] = "in_progress"
                 if write_json(task_json_path, data):
                     print(colored("✓ Status: planning → in_progress (degraded)", Colors.GREEN))
+                    append_activity(full_path, "start", "task started (degraded session)")
             run_task_hooks("after_start", task_json_path, repo_root)
         return 0
 
@@ -129,6 +133,7 @@ def cmd_start(args: argparse.Namespace) -> int:
                 data["status"] = "in_progress"
                 if write_json(task_json_path, data):
                     print(colored("✓ Status: planning → in_progress", Colors.GREEN))
+                    append_activity(full_path, "start", "task started")
 
         print()
         print(colored("The hook will now inject context from this task's jsonl files.", Colors.BLUE))
@@ -178,6 +183,80 @@ def cmd_current(args: argparse.Namespace) -> int:
         return 0
 
     return 1
+
+
+# =============================================================================
+# Command: activity-append / activity-log (multi-LLM task log)
+# =============================================================================
+
+def _resolve_activity_task_dir(task_input: str | None, repo_root):
+    """Resolve a task dir for activity commands: explicit arg, else active task."""
+    if task_input:
+        full = resolve_task_dir(task_input, repo_root)
+    else:
+        current = get_current_task(repo_root)
+        full = (repo_root / current) if current else None
+    if full is None or not full.is_dir():
+        return None
+    return full
+
+
+def cmd_activity_append(args: argparse.Namespace) -> int:
+    """Append one multi-LLM activity record to the task's activity.jsonl."""
+    repo_root = get_repo_root()
+    full = _resolve_activity_task_dir(args.dir, repo_root)
+    if full is None:
+        print(colored(
+            "Error: no task directory (pass <dir> or run `task.py start` first)",
+            Colors.RED,
+        ))
+        return 1
+
+    record = append_activity(
+        full,
+        args.action,
+        args.note or "",
+        platform=args.platform,
+        model=args.model,
+        session=args.session,
+    )
+    if record is None:
+        print(colored("Error: failed to write activity.jsonl", Colors.RED))
+        return 1
+
+    note = record["note"][:60]
+    print(colored(
+        f"✓ activity: [{record['platform']}] {record['action']}"
+        + (f" — {note}" if note else ""),
+        Colors.GREEN,
+    ))
+    return 0
+
+
+def cmd_activity_log(args: argparse.Namespace) -> int:
+    """Print the task's activity.jsonl as a readable timeline."""
+    repo_root = get_repo_root()
+    full = _resolve_activity_task_dir(args.dir, repo_root)
+    if full is None:
+        print(colored(
+            "Error: no task directory (pass <dir> or run `task.py start` first)",
+            Colors.RED,
+        ))
+        return 1
+
+    records = read_activity(full)
+    if not records:
+        print(colored("(no activity recorded)", Colors.YELLOW))
+        return 0
+
+    for record in records:
+        ts = record.get("ts", "?")
+        platform = record.get("platform", "?")
+        model = record.get("model") or "-"
+        action = record.get("action", "?")
+        note = record.get("note", "")
+        print(f"{ts}  [{platform}/{model}] {action}: {note}")
+    return 0
 
 
 # =============================================================================
@@ -313,6 +392,8 @@ Usage:
   python3 task.py start <dir>                        Set active task
   python3 task.py current [--source]                 Show active task
   python3 task.py finish                             Clear active task
+  python3 task.py activity-append [<dir>] --action <a> [--note <n>]  Log multi-LLM activity
+  python3 task.py activity-log [<dir>]               Print task activity timeline
   python3 task.py set-branch <dir> <branch>          Set git branch
   python3 task.py set-base-branch <dir> <branch>     Set PR target branch
   python3 task.py set-scope <dir> <scope>            Set scope for PR title
@@ -426,6 +507,26 @@ def main() -> int:
     # finish
     subparsers.add_parser("finish", help="Clear active task")
 
+    # activity-append
+    p_act_add = subparsers.add_parser(
+        "activity-append", help="Append a multi-LLM activity log entry"
+    )
+    p_act_add.add_argument("dir", nargs="?", help="Task directory (default: active task)")
+    p_act_add.add_argument(
+        "--action", required=True,
+        help="Action verb (start|research|implement|check|decision|handoff|finish|...)",
+    )
+    p_act_add.add_argument("--note", default="", help="Short human-readable note")
+    p_act_add.add_argument("--platform", help="Override platform (default: auto from session)")
+    p_act_add.add_argument("--model", help="Model id (default: env TRELLIS_ACTIVITY_MODEL or null)")
+    p_act_add.add_argument("--session", help="Override session id (proxy stamping; auto-dropped on cross-platform)")
+
+    # activity-log
+    p_act_log = subparsers.add_parser(
+        "activity-log", help="Print the task's activity timeline"
+    )
+    p_act_log.add_argument("dir", nargs="?", help="Task directory (default: active task)")
+
     # set-branch
     p_branch = subparsers.add_parser("set-branch", help="Set git branch")
     p_branch.add_argument("dir", help="Task directory")
@@ -479,6 +580,8 @@ def main() -> int:
         "start": cmd_start,
         "current": cmd_current,
         "finish": cmd_finish,
+        "activity-append": cmd_activity_append,
+        "activity-log": cmd_activity_log,
         "set-branch": cmd_set_branch,
         "set-base-branch": cmd_set_base_branch,
         "set-scope": cmd_set_scope,

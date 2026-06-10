@@ -6315,3 +6315,155 @@ describe("regression: safe auto-commit when .trellis/ is gitignored (0.5.10 → 
     expect(stderr).toContain("Auto-committed");
   });
 });
+
+describe("regression: multi-LLM activity log (activity.jsonl provenance)", () => {
+  let tmpDir: string;
+
+  beforeEach(() => {
+    tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), "trellis-activity-"));
+    const scriptsDir = path.join(tmpDir, ".trellis", "scripts");
+    for (const [relativePath, content] of getAllScripts()) {
+      const absPath = path.join(scriptsDir, relativePath);
+      fs.mkdirSync(path.dirname(absPath), { recursive: true });
+      fs.writeFileSync(absPath, content);
+    }
+    fs.mkdirSync(path.join(tmpDir, ".trellis", "workspace", "test-dev"), {
+      recursive: true,
+    });
+    fs.writeFileSync(
+      path.join(tmpDir, ".trellis", ".developer"),
+      "name=test-dev\ninitialized_at=2026-06-10T00:00:00Z\n",
+      "utf-8",
+    );
+  });
+
+  afterEach(() => {
+    fs.rmSync(tmpDir, { recursive: true, force: true });
+  });
+
+  function runTask(args: string[]): { stdout: string; stderr: string } {
+    const result = spawnSync(
+      "python3",
+      [path.join(tmpDir, ".trellis", "scripts", "task.py"), ...args],
+      {
+        cwd: tmpDir,
+        encoding: "utf-8",
+        env: { ...process.env, TRELLIS_CONTEXT_ID: "claude_acttest9" },
+      },
+    );
+    return { stdout: result.stdout ?? "", stderr: result.stderr ?? "" };
+  }
+
+  function findTaskDir(): string {
+    const tasksRoot = path.join(tmpDir, ".trellis", "tasks");
+    const dir = fs
+      .readdirSync(tasksRoot)
+      .find((d) => d.endsWith("-activity-feature-smoke"));
+    if (!dir) throw new Error("task dir not created");
+    return path.join(tasksRoot, dir);
+  }
+
+  it("[activity] task.py start auto-stamps a start entry with resolved platform", () => {
+    runTask(["create", "activity feature smoke"]);
+    const taskDir = findTaskDir();
+    runTask(["start", path.basename(taskDir)]);
+
+    const activityPath = path.join(taskDir, "activity.jsonl");
+    expect(fs.existsSync(activityPath)).toBe(true);
+    const lines = fs
+      .readFileSync(activityPath, "utf-8")
+      .trim()
+      .split("\n")
+      .map((l) => JSON.parse(l));
+    expect(lines.length).toBeGreaterThanOrEqual(1);
+    expect(lines[0].action).toBe("start");
+    expect(lines[0].platform).toBe("claude");
+  });
+
+  it("[activity] activity-append + activity-log round-trip on the active task", () => {
+    runTask(["create", "activity feature smoke"]);
+    const taskDir = findTaskDir();
+    runTask(["start", path.basename(taskDir)]);
+
+    const append = runTask([
+      "activity-append",
+      "--action",
+      "implement",
+      "--note",
+      "wired the feature",
+    ]);
+    expect(append.stdout).toContain("activity:");
+
+    const log = runTask(["activity-log"]);
+    expect(log.stdout).toContain("start: task started");
+    expect(log.stdout).toContain("implement: wired the feature");
+
+    const lines = fs
+      .readFileSync(path.join(taskDir, "activity.jsonl"), "utf-8")
+      .trim()
+      .split("\n")
+      .map((l) => JSON.parse(l));
+    const actions = lines.map((l) => l.action);
+    expect(actions).toEqual(["start", "implement"]);
+  });
+
+  it("[activity] task.py archive auto-stamps a finish entry before the dir moves", () => {
+    runTask(["create", "activity feature smoke"]);
+    const taskDir = findTaskDir();
+    runTask(["start", path.basename(taskDir)]);
+    runTask(["archive", path.basename(taskDir)]);
+
+    const archived = fs
+      .readdirSync(path.join(tmpDir, ".trellis", "tasks", "archive"), {
+        recursive: true,
+      })
+      .find(
+        (p) =>
+          typeof p === "string" && p.endsWith("activity.jsonl"),
+      ) as string;
+    const lines = fs
+      .readFileSync(
+        path.join(tmpDir, ".trellis", "tasks", "archive", archived),
+        "utf-8",
+      )
+      .trim()
+      .split("\n")
+      .map((l) => JSON.parse(l));
+    expect(lines[lines.length - 1].action).toBe("finish");
+  });
+
+  it("[activity] add_session.py records the acting agent in the journal", () => {
+    fs.writeFileSync(
+      path.join(tmpDir, ".trellis", "workspace", "test-dev", "journal-1.md"),
+      "# Journal - test-dev (Part 1)\n\n---\n",
+      "utf-8",
+    );
+    fs.writeFileSync(
+      path.join(tmpDir, ".trellis", "workspace", "test-dev", "index.md"),
+      "# Workspace Index - test-dev\n\n## Current Status\n\n<!-- @@@auto:current-status -->\n- **Active File**: `journal-1.md`\n- **Total Sessions**: 0\n- **Last Active**: -\n<!-- @@@/auto:current-status -->\n\n## Active Documents\n\n<!-- @@@auto:active-documents -->\n| File | Lines | Status |\n|------|-------|--------|\n| `journal-1.md` | ~0 | Active |\n<!-- @@@/auto:active-documents -->\n\n## Session History\n\n<!-- @@@auto:session-history -->\n| # | Date | Title | Commits | Branch |\n|---|------|-------|---------|--------|\n<!-- @@@/auto:session-history -->\n",
+      "utf-8",
+    );
+    const result = spawnSync(
+      "python3",
+      [
+        path.join(tmpDir, ".trellis", "scripts", "add_session.py"),
+        "--title",
+        "agent provenance",
+        "--summary",
+        "s",
+        "--no-commit",
+      ],
+      {
+        cwd: tmpDir,
+        encoding: "utf-8",
+        env: { ...process.env, TRELLIS_CONTEXT_ID: "claude_acttest9" },
+      },
+    );
+    expect(result.status).toBe(0);
+    const journal = fs.readFileSync(
+      path.join(tmpDir, ".trellis", "workspace", "test-dev", "journal-1.md"),
+      "utf-8",
+    );
+    expect(journal).toContain("**Agent**: claude");
+  });
+});

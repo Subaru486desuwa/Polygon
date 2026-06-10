@@ -152,6 +152,8 @@ def generate_session_content(
     today: str,
     package: str | None = None,
     branch: str | None = None,
+    platform: str | None = None,
+    model: str | None = None,
 ) -> str:
     """Generate session content."""
     if commit and commit != "-":
@@ -165,13 +167,17 @@ def generate_session_content(
 
     package_line = f"\n**Package**: {package}" if package else ""
     branch_line = f"\n**Branch**: `{branch}`" if branch else ""
+    if platform:
+        actor_line = f"\n**Agent**: {platform}" + (f" / {model}" if model else "")
+    else:
+        actor_line = ""
 
     return f"""
 
 ## Session {session_num}: {title}
 
 **Date**: {today}
-**Task**: {title}{package_line}{branch_line}
+**Task**: {title}{package_line}{branch_line}{actor_line}
 
 ### Summary
 
@@ -380,10 +386,20 @@ def add_session(
     auto_commit: bool = True,
     package: str | None = None,
     branch: str | None = None,
+    platform: str | None = None,
+    model: str | None = None,
 ) -> int:
     """Add a new session."""
     repo_root = get_repo_root()
     ensure_developer(repo_root)
+
+    # Auto-resolve the acting LLM (platform reliable; model best-effort) so the
+    # journal records provenance without the caller having to pass it.
+    if platform is None:
+        from common.activity import resolve_actor
+        platform, _session, resolved_model = resolve_actor()
+        if model is None:
+            model = resolved_model
 
     developer = get_developer(repo_root)
     if not developer:
@@ -406,7 +422,7 @@ def add_session(
 
     session_content = generate_session_content(
         new_session, title, commit, summary, extra_content, today, package,
-        branch,
+        branch, platform, model,
     )
     content_lines = len(session_content.splitlines())
 
