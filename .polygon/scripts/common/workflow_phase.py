@@ -64,8 +64,8 @@ def get_phase_index() -> str:
 
     Matches what the SessionStart hook injects into the `<workflow>` block:
     starts at `## Phase Index`, continues through `## Phase 1: Plan`,
-    `## Phase 2: Execute`, `## Phase 3: Finish`, stops at
-    `## Customizing Polygon (for forks)` (the docs-for-forks footer).
+    `## Phase 2: Execute`, `## Phase 3: Finish`, stops at the
+    `## Customizing` section (the docs footer).
     `[workflow-state:STATUS]` tag blocks (now embedded in Phase Index since
     v0.5.0-rc.0) are consumed by the UserPromptSubmit hook so they're
     stripped from this output.
@@ -80,7 +80,7 @@ def get_phase_index() -> str:
         if start is None and stripped == _PHASE_INDEX_HEADING:
             start = i
             continue
-        if start is not None and stripped == "## Customizing Polygon (for forks)":
+        if start is not None and stripped.startswith("## Customizing"):
             end = i
             break
 
