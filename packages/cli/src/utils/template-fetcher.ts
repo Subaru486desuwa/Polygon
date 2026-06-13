@@ -1,8 +1,8 @@
 /**
  * Remote template fetcher for Polygon CLI
  *
- * Fetches spec templates from the official marketplace:
- * https://github.com/mindfold-ai/marketplace
+ * Fetches spec templates from the project marketplace:
+ * https://github.com/Subaru486desuwa/marketplace
  */
 
 import fs from "node:fs";
@@ -16,9 +16,9 @@ import { toPosix } from "./posix.js";
 // =============================================================================
 
 export const TEMPLATE_INDEX_URL =
-  "https://raw.githubusercontent.com/mindfold-ai/marketplace/main/index.json";
+  "https://raw.githubusercontent.com/Subaru486desuwa/marketplace/main/index.json";
 
-const TEMPLATE_REPO = "gh:mindfold-ai/marketplace";
+const TEMPLATE_REPO = "gh:Subaru486desuwa/marketplace";
 
 /** Map template type to installation path */
 const INSTALL_PATHS: Record<string, string> = {

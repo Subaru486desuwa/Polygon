@@ -1,0 +1,35 @@
+{
+  "id": "own-marketplace-decouple-mindfold-upstream",
+  "name": "own-marketplace-decouple-mindfold-upstream",
+  "title": "own-marketplace-decouple-mindfold-upstream",
+  "description": "",
+  "status": "in_progress",
+  "dev_type": null,
+  "scope": null,
+  "package": null,
+  "priority": "P2",
+  "creator": "subaru486",
+  "assignee": "subaru486",
+  "createdAt": "2026-06-13",
+  "completedAt": null,
+  "branch": null,
+  "base_branch": "main",
+  "worktree_path": null,
+  "commit": null,
+  "pr_url": null,
+  "subtasks": [],
+  "children": [],
+  "parent": null,
+  "relatedFiles": [],
+  "notes": "",
+  "meta": {
+    "agents": [
+      {
+        "platform": "claude",
+        "model": null,
+        "first_seen": "2026-06-13T15:52:36Z",
+        "last_seen": "2026-06-13T15:52:36Z"
+      }
+    ]
+  }
+}
