@@ -19,7 +19,13 @@ import re
 import subprocess
 from pathlib import Path
 
-from .active_task import resolve_context_key
+from .active_task import (
+    SessionTaskInfo,
+    TaskLockInfo,
+    iter_session_tasks,
+    iter_task_locks,
+    resolve_context_key,
+)
 from .config import get_git_packages
 from .git import run_git
 from .packages_context import get_packages_section
@@ -264,6 +270,143 @@ def _append_package_git_context(lines: list[str], package_git_info: list[dict]) 
         lines.append("")
 
 
+def _session_task_to_dict(
+    entry: SessionTaskInfo,
+    current_context_key: str | None,
+) -> dict:
+    return {
+        "contextKey": entry.context_key,
+        "platform": entry.platform,
+        "currentTask": entry.current_task,
+        "resolvedTaskPath": entry.resolved_task_path,
+        "taskId": entry.task_id,
+        "taskTitle": entry.task_title,
+        "taskStatus": entry.task_status,
+        "lastSeenAt": entry.last_seen_at,
+        "ageSeconds": entry.age_seconds,
+        "fresh": entry.fresh,
+        "staleTask": entry.stale_task,
+        "isCurrentSession": entry.context_key == current_context_key,
+    }
+
+
+def _task_lock_to_dict(
+    entry: TaskLockInfo,
+    current_context_key: str | None,
+) -> dict:
+    return {
+        "taskPath": entry.task_path,
+        "contextKey": entry.context_key,
+        "platform": entry.platform,
+        "acquiredAt": entry.acquired_at,
+        "expiresAt": entry.expires_at,
+        "lastSeenAt": entry.last_seen_at,
+        "ageSeconds": entry.age_seconds,
+        "expiresInSeconds": entry.expires_in_seconds,
+        "expired": entry.expired,
+        "isCurrentSession": entry.context_key == current_context_key,
+    }
+
+
+def _format_session_age(entry: SessionTaskInfo) -> str:
+    if entry.age_seconds is None:
+        return "age unknown"
+    return f"{entry.age_seconds}s ago"
+
+
+def _format_session_freshness(entry: SessionTaskInfo) -> str:
+    if entry.fresh is True:
+        return "fresh"
+    if entry.fresh is False:
+        return "stale-session"
+    return "unknown-age"
+
+
+def _append_live_sessions(lines: list[str], repo_root: Path) -> None:
+    lines.append("## LIVE SESSIONS")
+    current_context_key = resolve_context_key()
+    sessions = iter_session_tasks(repo_root)
+    if not sessions:
+        lines.append("(no runtime session pointers)")
+        lines.append("")
+        return
+
+    for entry in sessions:
+        marker = " <- current session" if entry.context_key == current_context_key else ""
+        status = entry.task_status or ("missing-task" if entry.stale_task else "no-task")
+        task = entry.resolved_task_path or entry.current_task or "(none)"
+        detail = f" ({entry.task_title})" if entry.task_title else ""
+        lines.append(
+            f"- {entry.context_key}{marker} [{entry.platform}] "
+            f"{task} [{status}]{detail}; "
+            f"last_seen={entry.last_seen_at or 'unknown'} "
+            f"({_format_session_age(entry)}, {_format_session_freshness(entry)}, "
+            f"stale_task={str(entry.stale_task).lower()})"
+        )
+    lines.append(f"Total: {len(sessions)} session pointer(s)")
+    lines.append("")
+
+
+def _format_lock_expiry(entry: TaskLockInfo) -> str:
+    if entry.expires_in_seconds is None:
+        return "expiry unknown"
+    if entry.expires_in_seconds >= 0:
+        return f"expires in {entry.expires_in_seconds}s"
+    return f"expired {abs(entry.expires_in_seconds)}s ago"
+
+
+def _append_task_locks(lines: list[str], repo_root: Path) -> None:
+    lines.append("## TASK LOCKS")
+    current_context_key = resolve_context_key()
+    locks = iter_task_locks(repo_root, current_context_key)
+    if not locks:
+        lines.append("(no task leases)")
+        lines.append("")
+        return
+
+    for entry in locks:
+        marker = " <- current session" if entry.context_key == current_context_key else ""
+        state = "expired" if entry.expired else "active"
+        lines.append(
+            f"- {entry.task_path}{marker} [{state}] owner={entry.context_key} "
+            f"platform={entry.platform}; acquired={entry.acquired_at}; "
+            f"expires={entry.expires_at} ({_format_lock_expiry(entry)})"
+        )
+    lines.append(f"Total: {len(locks)} task lease(s)")
+    lines.append("")
+
+
+def get_task_locks_json(repo_root: Path | None = None) -> list[dict]:
+    """Return task execution leases as JSON-serializable dicts."""
+    if repo_root is None:
+        repo_root = get_repo_root()
+    current_context_key = resolve_context_key()
+    return [
+        _task_lock_to_dict(entry, current_context_key)
+        for entry in iter_task_locks(repo_root, current_context_key)
+    ]
+
+
+def get_live_sessions_json(repo_root: Path | None = None) -> list[dict]:
+    """Return live runtime session pointers as JSON-serializable dicts."""
+    if repo_root is None:
+        repo_root = get_repo_root()
+    current_context_key = resolve_context_key()
+    return [
+        _session_task_to_dict(entry, current_context_key)
+        for entry in iter_session_tasks(repo_root)
+    ]
+
+
+def get_live_sessions_text(repo_root: Path | None = None) -> str:
+    """Return the LIVE SESSIONS section used by context and task.py."""
+    if repo_root is None:
+        repo_root = get_repo_root()
+    lines: list[str] = []
+    _append_live_sessions(lines, repo_root)
+    return "\n".join(lines).strip()
+
+
 def _read_project_version(repo_root: Path) -> str | None:
     try:
         version = (repo_root / DIR_WORKFLOW / ".version").read_text(
@@ -457,6 +600,8 @@ def get_context_json(repo_root: Path | None = None) -> dict:
         }
         for t in iter_active_tasks(tasks_dir)
     ]
+    live_sessions = get_live_sessions_json(repo_root)
+    task_locks = get_task_locks_json(repo_root)
 
     # Package git repos (independent sub-repositories)
     pkg_git_info = _collect_package_git_info(
@@ -477,6 +622,8 @@ def get_context_json(repo_root: Path | None = None) -> dict:
             "active": tasks,
             "directory": f"{DIR_WORKFLOW}/{DIR_TASKS}",
         },
+        "liveSessions": live_sessions,
+        "taskLocks": task_locks,
         "journal": {
             "file": journal_relative,
             "lines": journal_lines,
@@ -618,6 +765,9 @@ def get_context_text(repo_root: Path | None = None) -> str:
         lines.append("(no tasks assigned to you)")
     lines.append("")
 
+    _append_live_sessions(lines, repo_root)
+    _append_task_locks(lines, repo_root)
+
     # Journal file
     lines.append("## JOURNAL FILE")
     journal_file = get_active_journal_file(repo_root)
@@ -704,6 +854,9 @@ def get_context_record_json(repo_root: Path | None = None) -> dict:
                 "contextKey": context_key,
             }
 
+    live_sessions = get_live_sessions_json(repo_root)
+    task_locks = get_task_locks_json(repo_root)
+
     # Package git repos
     pkg_git_info = _collect_package_git_info(
         repo_root,
@@ -721,6 +874,8 @@ def get_context_record_json(repo_root: Path | None = None) -> dict:
         },
         "myTasks": my_tasks,
         "currentTask": current_task_info,
+        "liveSessions": live_sessions,
+        "taskLocks": task_locks,
     }
 
     if pkg_git_info:
@@ -771,6 +926,9 @@ def get_context_text_record(repo_root: Path | None = None) -> str:
     if my_task_count == 0:
         lines.append("(no active tasks assigned to you)")
     lines.append("")
+
+    _append_live_sessions(lines, repo_root)
+    _append_task_locks(lines, repo_root)
 
     root_git_info = _collect_root_git_info(repo_root)
     _append_root_git_context(lines, root_git_info)

@@ -12,7 +12,8 @@
  * 5. Platform Registry (beta.9, beta.13, beta.16)
  */
 
-import { execSync, spawnSync } from "node:child_process";
+import { execSync, spawn, spawnSync } from "node:child_process";
+import { createHash } from "node:crypto";
 import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
@@ -1245,6 +1246,28 @@ describe("regression: current-task path normalization", () => {
     );
   }
 
+  function writeTaskLock(taskRef: string, contextKey: string): void {
+    const lockName = `${createHash("sha256")
+      .update(taskRef)
+      .digest("hex")
+      .slice(0, 24)}.json`;
+    writeProjectFile(
+      path.join(".polygon", ".runtime", "task-locks", lockName),
+      JSON.stringify(
+        {
+          task_path: taskRef,
+          context_key: contextKey,
+          platform: "test",
+          acquired_at: "2026-06-17T00:00:00Z",
+          expires_at: "2099-01-01T00:00:00Z",
+          last_seen_at: "2026-06-17T00:00:00Z",
+        },
+        null,
+        2,
+      ),
+    );
+  }
+
   const SESSION_ENV_KEYS = [
     "POLYGON_CONTEXT_ID",
     "CLAUDE_SESSION_ID",
@@ -1334,6 +1357,84 @@ describe("regression: current-task path normalization", () => {
       encoding: "utf-8",
       env: sessionEnv(envOverrides),
     });
+  }
+
+  interface ProcessResult {
+    status: number | null;
+    stdout: string;
+    stderr: string;
+    output: string;
+  }
+
+  function runTaskStartProcess(
+    taskRef: string,
+    contextKey: string,
+  ): Promise<ProcessResult> {
+    const taskScriptPath = path.join(tmpDir, ".polygon", "scripts", "task.py");
+    return new Promise((resolve, reject) => {
+      const child = spawn(pythonCmd, [taskScriptPath, "start", taskRef], {
+        cwd: tmpDir,
+        env: sessionEnv({ POLYGON_CONTEXT_ID: contextKey }),
+      });
+
+      let stdout = "";
+      let stderr = "";
+      child.stdout.setEncoding("utf-8");
+      child.stderr.setEncoding("utf-8");
+      child.stdout.on("data", (chunk: string | Buffer) => {
+        stdout += chunk.toString();
+      });
+      child.stderr.on("data", (chunk: string | Buffer) => {
+        stderr += chunk.toString();
+      });
+      child.on("error", reject);
+      child.on("close", (status) => {
+        resolve({
+          status,
+          stdout,
+          stderr,
+          output: `${stdout}${stderr}`,
+        });
+      });
+    });
+  }
+
+  interface TaskLockEntry {
+    taskPath: string;
+    contextKey: string;
+    isCurrentSession: boolean;
+  }
+
+  interface SessionEntry {
+    contextKey: string;
+    resolvedTaskPath: string | null;
+    isCurrentSession: boolean;
+  }
+
+  function readTaskLocks(
+    envOverrides: NodeJS.ProcessEnv = {},
+  ): TaskLockEntry[] {
+    const taskScriptPath = path.join(tmpDir, ".polygon", "scripts", "task.py");
+    return JSON.parse(
+      execSync(`${pythonCmd} ${JSON.stringify(taskScriptPath)} locks --json`, {
+        cwd: tmpDir,
+        encoding: "utf-8",
+        env: sessionEnv(envOverrides),
+      }),
+    ) as TaskLockEntry[];
+  }
+
+  function readRuntimeSessions(
+    envOverrides: NodeJS.ProcessEnv = {},
+  ): SessionEntry[] {
+    const taskScriptPath = path.join(tmpDir, ".polygon", "scripts", "task.py");
+    return JSON.parse(
+      execSync(`${pythonCmd} ${JSON.stringify(taskScriptPath)} sessions --json`, {
+        cwd: tmpDir,
+        encoding: "utf-8",
+        env: sessionEnv(envOverrides),
+      }),
+    ) as SessionEntry[];
   }
 
   function expectTemplateContent(
@@ -1690,6 +1791,275 @@ describe("regression: current-task path normalization", () => {
     expect(fs.existsSync(contextA)).toBe(false);
     expect(fs.existsSync(contextB)).toBe(false);
     expect(fs.existsSync(contextOther)).toBe(true);
+  });
+
+  it("[task-locks] task.py start refuses a second live session unless takeover is explicit", () => {
+    setupTaskRepo();
+    const taskScriptPath = path.join(tmpDir, ".polygon", "scripts", "task.py");
+
+    const first = spawnSync(
+      pythonCmd,
+      [taskScriptPath, "start", "issue-106"],
+      {
+        cwd: tmpDir,
+        encoding: "utf-8",
+        env: sessionEnv({ POLYGON_CONTEXT_ID: "session-a" }),
+      },
+    );
+    expect(first.status).toBe(0);
+
+    const blocked = spawnSync(
+      pythonCmd,
+      [taskScriptPath, "start", "issue-106"],
+      {
+        cwd: tmpDir,
+        encoding: "utf-8",
+        env: sessionEnv({ POLYGON_CONTEXT_ID: "session-b" }),
+      },
+    );
+    expect(blocked.status).toBe(1);
+    expect(`${blocked.stdout}${blocked.stderr}`).toContain(
+      "Task is locked by session session-a",
+    );
+    expect(
+      fs.existsSync(
+        path.join(
+          tmpDir,
+          ".polygon",
+          ".runtime",
+          "sessions",
+          "session-b.json",
+        ),
+      ),
+    ).toBe(false);
+
+    const locksBefore = JSON.parse(
+      execSync(`${pythonCmd} ${JSON.stringify(taskScriptPath)} locks --json`, {
+        cwd: tmpDir,
+        encoding: "utf-8",
+        env: sessionEnv({ POLYGON_CONTEXT_ID: "session-a" }),
+      }),
+    ) as { contextKey: string; taskPath: string; isCurrentSession: boolean }[];
+    expect(locksBefore).toHaveLength(1);
+    expect(locksBefore[0]).toMatchObject({
+      contextKey: "session-a",
+      taskPath: ".polygon/tasks/issue-106",
+      isCurrentSession: true,
+    });
+
+    const takeover = spawnSync(
+      pythonCmd,
+      [taskScriptPath, "start", "issue-106", "--force-takeover"],
+      {
+        cwd: tmpDir,
+        encoding: "utf-8",
+        env: sessionEnv({ POLYGON_CONTEXT_ID: "session-b" }),
+      },
+    );
+    expect(takeover.status).toBe(0);
+    const locksAfter = JSON.parse(
+      execSync(`${pythonCmd} ${JSON.stringify(taskScriptPath)} locks --json`, {
+        cwd: tmpDir,
+        encoding: "utf-8",
+        env: sessionEnv({ POLYGON_CONTEXT_ID: "session-b" }),
+      }),
+    ) as { contextKey: string; isCurrentSession: boolean }[];
+    expect(locksAfter).toHaveLength(1);
+    expect(locksAfter[0]).toMatchObject({
+      contextKey: "session-b",
+      isCurrentSession: true,
+    });
+  });
+
+  it("[task-locks] task.py finish releases the current session task lease", () => {
+    setupTaskRepo();
+    const taskScriptPath = path.join(tmpDir, ".polygon", "scripts", "task.py");
+    const env = sessionEnv({ POLYGON_CONTEXT_ID: "finish-lock-session" });
+
+    execSync(`${pythonCmd} ${JSON.stringify(taskScriptPath)} start issue-106`, {
+      cwd: tmpDir,
+      encoding: "utf-8",
+      env,
+    });
+    let locks = JSON.parse(
+      execSync(`${pythonCmd} ${JSON.stringify(taskScriptPath)} locks --json`, {
+        cwd: tmpDir,
+        encoding: "utf-8",
+        env,
+      }),
+    ) as unknown[];
+    expect(locks).toHaveLength(1);
+
+    const finish = spawnSync(pythonCmd, [taskScriptPath, "finish"], {
+      cwd: tmpDir,
+      encoding: "utf-8",
+      env,
+    });
+    expect(finish.status).toBe(0);
+    locks = JSON.parse(
+      execSync(`${pythonCmd} ${JSON.stringify(taskScriptPath)} locks --json`, {
+        cwd: tmpDir,
+        encoding: "utf-8",
+        env,
+      }),
+    ) as unknown[];
+    expect(locks).toEqual([]);
+  });
+
+  it("[task-locks] task.py archive deletes task leases pointing at the archived task", () => {
+    setupTaskRepo();
+    const taskScriptPath = path.join(tmpDir, ".polygon", "scripts", "task.py");
+    const lockName = `${createHash("sha256")
+      .update(".polygon/tasks/issue-106")
+      .digest("hex")
+      .slice(0, 24)}.json`;
+    const lockPath = path.join(
+      tmpDir,
+      ".polygon",
+      ".runtime",
+      "task-locks",
+      lockName,
+    );
+    writeProjectFile(
+      path.join(".polygon", ".runtime", "task-locks", lockName),
+      JSON.stringify(
+        {
+          task_path: ".polygon/tasks/issue-106",
+          context_key: "archive-lock-session",
+          platform: "test",
+          acquired_at: "2026-06-17T00:00:00Z",
+          expires_at: "2099-01-01T00:00:00Z",
+          last_seen_at: "2026-06-17T00:00:00Z",
+        },
+        null,
+        2,
+      ),
+    );
+    expect(fs.existsSync(lockPath)).toBe(true);
+
+    execSync(`${pythonCmd} ${JSON.stringify(taskScriptPath)} archive issue-106 --no-commit`, {
+      cwd: tmpDir,
+      encoding: "utf-8",
+      env: sessionEnv(),
+    });
+
+    expect(fs.existsSync(lockPath)).toBe(false);
+  });
+
+  it("[task-locks] concurrent start processes allow exactly one owner for the same task", async () => {
+    setupTaskRepo();
+    const workers = Array.from(
+      { length: 8 },
+      (_, index) => `parallel-same-${index}`,
+    );
+
+    const results = await Promise.all(
+      workers.map((contextKey) => runTaskStartProcess("issue-106", contextKey)),
+    );
+
+    const winners = results.filter((result) => result.status === 0);
+    const blocked = results.filter((result) => result.status === 1);
+    expect(winners).toHaveLength(1);
+    expect(blocked).toHaveLength(7);
+    for (const result of blocked) {
+      expect(result.output).toContain("Task is locked by session");
+    }
+
+    const locks = readTaskLocks();
+    expect(locks).toHaveLength(1);
+    const owner = locks[0]?.contextKey;
+    if (owner === undefined) {
+      throw new Error("expected one task lock owner");
+    }
+    expect(workers).toContain(owner);
+    expect(locks[0]).toMatchObject({
+      taskPath: ".polygon/tasks/issue-106",
+      contextKey: owner,
+    });
+
+    const sessions = readRuntimeSessions({ POLYGON_CONTEXT_ID: owner });
+    expect(sessions).toHaveLength(1);
+    expect(sessions[0]).toMatchObject({
+      contextKey: owner,
+      resolvedTaskPath: ".polygon/tasks/issue-106",
+      isCurrentSession: true,
+    });
+  });
+
+  it("[task-locks] concurrent windows can start different tasks and remain visible", async () => {
+    setupTaskRepo();
+    writeProjectFile(
+      path.join(".polygon", "tasks", "other-task", "task.json"),
+      JSON.stringify(
+        {
+          title: "Other parallel task",
+          status: "planning",
+          package: null,
+        },
+        null,
+        2,
+      ),
+    );
+
+    const [first, second] = await Promise.all([
+      runTaskStartProcess("issue-106", "parallel-different-a"),
+      runTaskStartProcess("other-task", "parallel-different-b"),
+    ]);
+    expect(first.status).toBe(0);
+    expect(second.status).toBe(0);
+
+    const locks = readTaskLocks({
+      POLYGON_CONTEXT_ID: "parallel-different-a",
+    });
+    expect(locks).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          taskPath: ".polygon/tasks/issue-106",
+          contextKey: "parallel-different-a",
+          isCurrentSession: true,
+        }),
+        expect.objectContaining({
+          taskPath: ".polygon/tasks/other-task",
+          contextKey: "parallel-different-b",
+          isCurrentSession: false,
+        }),
+      ]),
+    );
+
+    const sessions = readRuntimeSessions({
+      POLYGON_CONTEXT_ID: "parallel-different-a",
+    });
+    expect(sessions).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          contextKey: "parallel-different-a",
+          resolvedTaskPath: ".polygon/tasks/issue-106",
+          isCurrentSession: true,
+        }),
+        expect.objectContaining({
+          contextKey: "parallel-different-b",
+          resolvedTaskPath: ".polygon/tasks/other-task",
+          isCurrentSession: false,
+        }),
+      ]),
+    );
+
+    const contextScriptPath = path.join(
+      tmpDir,
+      ".polygon",
+      "scripts",
+      "get_context.py",
+    );
+    const contextText = execSync(`${pythonCmd} ${JSON.stringify(contextScriptPath)}`, {
+      cwd: tmpDir,
+      encoding: "utf-8",
+      env: sessionEnv({ POLYGON_CONTEXT_ID: "parallel-different-a" }),
+    });
+    expect(contextText).toContain("## LIVE SESSIONS");
+    expect(contextText).toContain("## TASK LOCKS");
+    expect(contextText).toContain("parallel-different-a <- current session");
+    expect(contextText).toContain("parallel-different-b");
+    expect(contextText).toContain(".polygon/tasks/other-task");
   });
 
   it("[task-lifecycle] task.py create refuses an archived task dir-name collision", () => {
@@ -2693,6 +3063,191 @@ describe("regression: current-task path normalization", () => {
     expect(status).toBe(1);
     expect(output).toContain("Current task: (none)");
     expect(output).toContain("Source: none");
+  });
+
+  it("[session-visibility] task.py sessions lists every runtime session without changing current-task isolation", () => {
+    setupTaskRepo();
+    writeSessionContext("codex_session_a", ".polygon/tasks/issue-106");
+    writeProjectFile(
+      path.join(".polygon", "tasks", "other-task", "task.json"),
+      JSON.stringify(
+        {
+          id: "other-task",
+          title: "Other task",
+          status: "planning",
+        },
+        null,
+        2,
+      ),
+    );
+    writeSessionContext("claude_session_b", ".polygon/tasks/other-task");
+
+    const taskScriptPath = path.join(tmpDir, ".polygon", "scripts", "task.py");
+    const textOutput = execSync(
+      `${pythonCmd} ${JSON.stringify(taskScriptPath)} sessions`,
+      {
+        cwd: tmpDir,
+        encoding: "utf-8",
+        env: sessionEnv(),
+      },
+    );
+    expect(textOutput).toContain("## LIVE SESSIONS");
+    expect(textOutput).toContain("codex_session_a");
+    expect(textOutput).toContain(".polygon/tasks/issue-106 [in_progress]");
+    expect(textOutput).toContain("claude_session_b");
+    expect(textOutput).toContain(".polygon/tasks/other-task [planning]");
+
+    const jsonOutput = execSync(
+      `${pythonCmd} ${JSON.stringify(taskScriptPath)} sessions --json`,
+      {
+        cwd: tmpDir,
+        encoding: "utf-8",
+        env: sessionEnv({ POLYGON_CONTEXT_ID: "claude_session_b" }),
+      },
+    );
+    const sessions = JSON.parse(jsonOutput) as {
+      contextKey: string;
+      isCurrentSession: boolean;
+      resolvedTaskPath: string | null;
+      taskStatus: string | null;
+    }[];
+    expect(sessions).toHaveLength(2);
+    expect(sessions).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          contextKey: "codex_session_a",
+          isCurrentSession: false,
+          resolvedTaskPath: ".polygon/tasks/issue-106",
+          taskStatus: "in_progress",
+        }),
+        expect.objectContaining({
+          contextKey: "claude_session_b",
+          isCurrentSession: true,
+          resolvedTaskPath: ".polygon/tasks/other-task",
+          taskStatus: "planning",
+        }),
+      ]),
+    );
+
+    const { output, status } = runTaskCurrent();
+    expect(status).toBe(1);
+    expect(output).toContain("Current task: (none)");
+    expect(output).toContain("Source: none");
+  });
+
+  it("[session-visibility] get_context.py includes live sessions in text and JSON output", () => {
+    setupTaskRepo();
+    writeSessionContext("codex_session_a", ".polygon/tasks/issue-106");
+    writeTaskLock(".polygon/tasks/issue-106", "codex_session_a");
+    writeProjectFile(
+      path.join(".polygon", "tasks", "stale-task", "task.json"),
+      JSON.stringify({ title: "deleted", status: "in_progress" }, null, 2),
+    );
+    writeSessionContext("stale_session", ".polygon/tasks/stale-task");
+    fs.rmSync(path.join(tmpDir, ".polygon", "tasks", "stale-task"), {
+      recursive: true,
+      force: true,
+    });
+
+    const contextScriptPath = path.join(
+      tmpDir,
+      ".polygon",
+      "scripts",
+      "get_context.py",
+    );
+    const textOutput = execSync(`${pythonCmd} ${JSON.stringify(contextScriptPath)}`, {
+      cwd: tmpDir,
+      encoding: "utf-8",
+      env: sessionEnv({ POLYGON_CONTEXT_ID: "codex_session_a" }),
+    });
+
+    expect(textOutput).toContain("## LIVE SESSIONS");
+    expect(textOutput).toContain("codex_session_a <- current session");
+    expect(textOutput).toContain(".polygon/tasks/issue-106 [in_progress]");
+    expect(textOutput).toContain("stale_session");
+    expect(textOutput).toContain(".polygon/tasks/stale-task [missing-task]");
+    expect(textOutput).toContain("## TASK LOCKS");
+    expect(textOutput).toContain(
+      ".polygon/tasks/issue-106 <- current session [active] owner=codex_session_a",
+    );
+
+    const jsonOutput = execSync(
+      `${pythonCmd} ${JSON.stringify(contextScriptPath)} --json`,
+      {
+        cwd: tmpDir,
+        encoding: "utf-8",
+        env: sessionEnv({ POLYGON_CONTEXT_ID: "codex_session_a" }),
+      },
+    );
+    const context = JSON.parse(jsonOutput) as {
+      liveSessions: {
+        contextKey: string;
+        isCurrentSession: boolean;
+        staleTask: boolean;
+      }[];
+      taskLocks: {
+        taskPath: string;
+        contextKey: string;
+        isCurrentSession: boolean;
+      }[];
+    };
+    expect(context.liveSessions).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          contextKey: "codex_session_a",
+          isCurrentSession: true,
+          staleTask: false,
+        }),
+        expect.objectContaining({
+          contextKey: "stale_session",
+          isCurrentSession: false,
+          staleTask: true,
+        }),
+      ]),
+    );
+    expect(context.taskLocks).toEqual([
+      expect.objectContaining({
+        taskPath: ".polygon/tasks/issue-106",
+        contextKey: "codex_session_a",
+        isCurrentSession: true,
+      }),
+    ]);
+
+    const recordTextOutput = execSync(
+      `${pythonCmd} ${JSON.stringify(contextScriptPath)} --mode record`,
+      {
+        cwd: tmpDir,
+        encoding: "utf-8",
+        env: sessionEnv({ POLYGON_CONTEXT_ID: "codex_session_a" }),
+      },
+    );
+    expect(recordTextOutput).toContain("## LIVE SESSIONS");
+    expect(recordTextOutput).toContain("## TASK LOCKS");
+
+    const recordJsonOutput = execSync(
+      `${pythonCmd} ${JSON.stringify(contextScriptPath)} --mode record --json`,
+      {
+        cwd: tmpDir,
+        encoding: "utf-8",
+        env: sessionEnv({ POLYGON_CONTEXT_ID: "codex_session_a" }),
+      },
+    );
+    const recordContext = JSON.parse(recordJsonOutput) as {
+      liveSessions: unknown[];
+      taskLocks: {
+        taskPath: string;
+        contextKey: string;
+        isCurrentSession: boolean;
+      }[];
+    };
+    expect(recordContext.liveSessions).toHaveLength(2);
+    expect(recordContext.taskLocks).toEqual([
+      expect.objectContaining({
+        taskPath: ".polygon/tasks/issue-106",
+        contextKey: "codex_session_a",
+        isCurrentSession: true,
+      }),
+    ]);
   });
 
   it("[session-fallback] explicit context-key match takes precedence over fallback", () => {

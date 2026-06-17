@@ -14,6 +14,7 @@ import os
 import re
 import sys
 import time
+from contextlib import contextmanager
 from dataclasses import dataclass
 from datetime import datetime, timezone
 from pathlib import Path
@@ -23,7 +24,9 @@ DIR_WORKFLOW = ".polygon"
 DIR_TASKS = "tasks"
 DIR_RUNTIME = ".runtime"
 DIR_SESSIONS = "sessions"
+DIR_TASK_LOCKS = "task-locks"
 DIR_CURSOR_SHELL = "cursor-shell"
+TASK_LOCK_GUARD_FILE = ".task-lock-guard.lock"
 CURSOR_SHELL_TICKET_TTL_SECONDS = 30
 # A single lingering session file from a closed/dead window must not hijack a new
 # session's breadcrumb through the single-session fallback. Only inherit a
@@ -32,6 +35,7 @@ CURSOR_SHELL_TICKET_TTL_SECONDS = 30
 # silently forced onto the next window). Live sessions stay fresh because the
 # per-turn breadcrumb hook calls touch_session_last_seen.
 SESSION_FALLBACK_MAX_AGE_SECONDS = 1800
+TASK_LOCK_LEASE_SECONDS = 900
 TASK_SESSION_COMMANDS = {"start", "current", "finish"}
 
 _SESSION_KEYS = ("session_id", "sessionId", "sessionID")
@@ -104,6 +108,50 @@ class ActiveTask:
         return self.source_type
 
 
+@dataclass(frozen=True)
+class SessionTaskInfo:
+    """Read-only view of one runtime session's active-task pointer."""
+
+    context_key: str
+    context_path: Path
+    platform: str
+    current_task: str | None
+    resolved_task_path: str | None
+    task_id: str | None
+    task_title: str | None
+    task_status: str | None
+    last_seen_at: str | None
+    age_seconds: int | None
+    fresh: bool | None
+    stale_task: bool
+
+
+@dataclass(frozen=True)
+class TaskLockInfo:
+    """Read-only view of one task execution lease."""
+
+    task_path: str
+    context_key: str
+    platform: str
+    acquired_at: str
+    expires_at: str
+    last_seen_at: str
+    age_seconds: int | None
+    expires_in_seconds: int | None
+    expired: bool
+
+
+class TaskLockConflict(RuntimeError):
+    """Raised when another live session owns a task lease."""
+
+    def __init__(self, lock: TaskLockInfo) -> None:
+        super().__init__(
+            f"Task is locked by session {lock.context_key} "
+            f"[{lock.platform}] until {lock.expires_at}"
+        )
+        self.lock = lock
+
+
 def normalize_task_ref(task_ref: str) -> str:
     """Normalize a task ref for stable storage and comparison."""
     normalized = task_ref.strip()
@@ -142,6 +190,57 @@ def resolve_task_ref(task_ref: str, repo_root: Path) -> Path | None:
 
 def _runtime_sessions_dir(repo_root: Path) -> Path:
     return repo_root / DIR_WORKFLOW / DIR_RUNTIME / DIR_SESSIONS
+
+
+def _task_locks_dir(repo_root: Path) -> Path:
+    return repo_root / DIR_WORKFLOW / DIR_RUNTIME / DIR_TASK_LOCKS
+
+
+def _lock_region(file_obj: Any) -> None:
+    if os.name == "nt":
+        import msvcrt
+
+        file_obj.seek(0)
+        if not file_obj.read(1):
+            file_obj.write("0")
+            file_obj.flush()
+        file_obj.seek(0)
+        msvcrt.locking(file_obj.fileno(), msvcrt.LK_LOCK, 1)
+        return
+
+    import fcntl
+
+    fcntl.flock(file_obj.fileno(), fcntl.LOCK_EX)
+
+
+def _unlock_region(file_obj: Any) -> None:
+    if os.name == "nt":
+        import msvcrt
+
+        file_obj.seek(0)
+        msvcrt.locking(file_obj.fileno(), msvcrt.LK_UNLCK, 1)
+        return
+
+    import fcntl
+
+    fcntl.flock(file_obj.fileno(), fcntl.LOCK_UN)
+
+
+@contextmanager
+def _task_lock_guard(repo_root: Path) -> Any:
+    runtime_dir = repo_root / DIR_WORKFLOW / DIR_RUNTIME
+    runtime_dir.mkdir(parents=True, exist_ok=True)
+    guard_path = runtime_dir / TASK_LOCK_GUARD_FILE
+    with guard_path.open("a+", encoding="utf-8") as guard:
+        _lock_region(guard)
+        try:
+            yield
+        finally:
+            _unlock_region(guard)
+
+
+def _task_lock_path(task_ref: str, repo_root: Path) -> Path:
+    return _task_locks_dir(repo_root) / f"{_hash_value(task_ref)}.json"
 
 
 def _sanitize_key(raw: str) -> str:
@@ -472,6 +571,74 @@ def _context_path(repo_root: Path, context_key: str) -> Path:
     return _runtime_sessions_dir(repo_root) / f"{context_key}.json"
 
 
+def _task_metadata(task_dir: Path | None) -> tuple[str | None, str | None, str | None]:
+    if task_dir is None or not task_dir.is_dir():
+        return None, None, None
+
+    data = _read_json(task_dir / "task.json") or {}
+    task_id = _string_value(data.get("id")) or task_dir.name
+    title = _string_value(data.get("title")) or _string_value(data.get("name"))
+    status = _string_value(data.get("status"))
+    return task_id, title, status
+
+
+def _relative_task_path(task_dir: Path | None, repo_root: Path) -> str | None:
+    if task_dir is None:
+        return None
+    try:
+        return task_dir.relative_to(repo_root).as_posix()
+    except ValueError:
+        return str(task_dir)
+
+
+def _session_age(last_seen_at: str | None, now: float) -> tuple[int | None, bool | None]:
+    seen_epoch = _parse_iso_to_epoch(last_seen_at)
+    if seen_epoch is None:
+        return None, None
+    age = max(0, int(now - seen_epoch))
+    return age, age <= SESSION_FALLBACK_MAX_AGE_SECONDS
+
+
+def iter_session_tasks(repo_root: Path) -> list[SessionTaskInfo]:
+    """Return read-only active-task pointers for every runtime session file.
+
+    This is an observability API. It never participates in selecting the
+    current session's active task, so multi-window isolation stays intact.
+    """
+    sessions_dir = _runtime_sessions_dir(repo_root)
+    if not sessions_dir.is_dir():
+        return []
+
+    now = time.time()
+    entries: list[SessionTaskInfo] = []
+    for session_path in sorted(sessions_dir.glob("*.json")):
+        context = _read_json(session_path) or {}
+        task_ref = _string_value(context.get("current_task"))
+        task_dir = resolve_task_ref(task_ref, repo_root) if task_ref else None
+        task_id, title, status = _task_metadata(task_dir)
+        last_seen_at = _string_value(context.get("last_seen_at"))
+        age_seconds, fresh = _session_age(last_seen_at, now)
+        platform = _string_value(context.get("platform")) or "unknown"
+        entries.append(
+            SessionTaskInfo(
+                context_key=session_path.stem,
+                context_path=session_path,
+                platform=platform,
+                current_task=task_ref,
+                resolved_task_path=_relative_task_path(task_dir, repo_root),
+                task_id=task_id,
+                task_title=title,
+                task_status=status,
+                last_seen_at=last_seen_at,
+                age_seconds=age_seconds,
+                fresh=fresh,
+                stale_task=bool(task_ref and (task_dir is None or not task_dir.is_dir())),
+            )
+        )
+
+    return entries
+
+
 def resolve_active_task(
     repo_root: Path,
     platform_input: dict[str, Any] | None = None,
@@ -548,6 +715,205 @@ def _parse_iso_to_epoch(ts: str | None) -> float | None:
         return None
 
 
+def _utc_from_epoch(epoch: float) -> str:
+    return (
+        datetime.fromtimestamp(epoch, timezone.utc)
+        .replace(microsecond=0)
+        .isoformat()
+        .replace("+00:00", "Z")
+    )
+
+
+def _lock_expiry(now: float | None = None) -> str:
+    now = time.time() if now is None else now
+    return _utc_from_epoch(now + TASK_LOCK_LEASE_SECONDS)
+
+
+def _task_lock_info(data: dict[str, Any], now: float, current_context_key: str | None) -> TaskLockInfo | None:
+    task_path = _string_value(data.get("task_path"))
+    context_key = _string_value(data.get("context_key"))
+    platform = _string_value(data.get("platform")) or "unknown"
+    acquired_at = _string_value(data.get("acquired_at"))
+    expires_at = _string_value(data.get("expires_at"))
+    last_seen_at = _string_value(data.get("last_seen_at")) or acquired_at
+    if not task_path or not context_key or not acquired_at or not expires_at or not last_seen_at:
+        return None
+
+    acquired_epoch = _parse_iso_to_epoch(acquired_at)
+    expires_epoch = _parse_iso_to_epoch(expires_at)
+    age_seconds = None if acquired_epoch is None else max(0, int(now - acquired_epoch))
+    expires_in = None if expires_epoch is None else int(expires_epoch - now)
+    expired = True if expires_epoch is None else expires_epoch <= now
+    return TaskLockInfo(
+        task_path=task_path,
+        context_key=context_key,
+        platform=platform,
+        acquired_at=acquired_at,
+        expires_at=expires_at,
+        last_seen_at=last_seen_at,
+        age_seconds=age_seconds,
+        expires_in_seconds=expires_in,
+        expired=expired,
+    )
+
+
+def iter_task_locks(repo_root: Path, current_context_key: str | None = None) -> list[TaskLockInfo]:
+    """Return read-only task execution leases."""
+    locks_dir = _task_locks_dir(repo_root)
+    if not locks_dir.is_dir():
+        return []
+
+    now = time.time()
+    entries: list[TaskLockInfo] = []
+    for lock_path in sorted(locks_dir.glob("*.json")):
+        lock = _read_json(lock_path)
+        if lock is None:
+            continue
+        info = _task_lock_info(lock, now, current_context_key)
+        if info is not None:
+            entries.append(info)
+    return sorted(entries, key=lambda entry: entry.task_path)
+
+
+def _clear_locks_for_context_unlocked(
+    context_key: str,
+    repo_root: Path,
+    keep_task_path: str | None = None,
+) -> int:
+    cleared = 0
+    locks_dir = _task_locks_dir(repo_root)
+    if not locks_dir.is_dir():
+        return cleared
+
+    for lock_path in locks_dir.glob("*.json"):
+        lock = _read_json(lock_path) or {}
+        if _string_value(lock.get("context_key")) != context_key:
+            continue
+        if keep_task_path and _string_value(lock.get("task_path")) == keep_task_path:
+            continue
+        if _remove_file(lock_path):
+            cleared += 1
+    return cleared
+
+
+def acquire_task_lock(
+    task_path: str,
+    repo_root: Path,
+    platform_input: dict[str, Any] | None = None,
+    platform: str | None = None,
+    *,
+    force_takeover: bool = False,
+) -> TaskLockInfo | None:
+    """Acquire the task execution lease for the current session.
+
+    Returns None when no context key is available, matching set_active_task.
+    Raises TaskLockConflict when another unexpired session owns the lease.
+    """
+    canonical = _canonical_task_ref(task_path, repo_root)
+    if canonical is None:
+        return None
+
+    context_key = resolve_context_key(platform_input, platform)
+    if not context_key:
+        return None
+
+    metadata = _context_metadata(platform_input, platform, context_key)
+    platform_name = _string_value(metadata.get("platform")) or "session"
+    lock_path = _task_lock_path(canonical, repo_root)
+
+    with _task_lock_guard(repo_root):
+        existing = _read_json(lock_path)
+        now = time.time()
+        if existing:
+            existing_info = _task_lock_info(existing, now, context_key)
+            if (
+                existing_info
+                and existing_info.context_key != context_key
+                and not existing_info.expired
+                and not force_takeover
+            ):
+                raise TaskLockConflict(existing_info)
+
+        acquired_at = _utc_from_epoch(now)
+        lock_data = {
+            "task_path": canonical,
+            "context_key": context_key,
+            "platform": platform_name,
+            "acquired_at": acquired_at,
+            "expires_at": _lock_expiry(now),
+            "last_seen_at": acquired_at,
+        }
+        if not _write_json(lock_path, lock_data):
+            return None
+        _clear_locks_for_context_unlocked(context_key, repo_root, keep_task_path=canonical)
+        info = _task_lock_info(lock_data, now, context_key)
+        return info
+
+
+def release_task_lock(
+    task_path: str,
+    repo_root: Path,
+    platform_input: dict[str, Any] | None = None,
+    platform: str | None = None,
+) -> bool:
+    """Release the current session's lease for a task."""
+    target = _canonical_task_ref(task_path, repo_root) or normalize_task_ref(task_path)
+    context_key = resolve_context_key(platform_input, platform)
+    if not target or not context_key:
+        return False
+    lock_path = _task_lock_path(target, repo_root)
+    if not lock_path.is_file():
+        return False
+
+    with _task_lock_guard(repo_root):
+        lock = _read_json(lock_path)
+        if not lock or _string_value(lock.get("context_key")) != context_key:
+            return False
+        return _remove_file(lock_path)
+
+
+def clear_task_from_locks(task_path: str, repo_root: Path) -> int:
+    """Delete all task leases that point at a task."""
+    target = _canonical_task_ref(task_path, repo_root) or normalize_task_ref(task_path)
+    if not target:
+        return 0
+
+    locks_dir = _task_locks_dir(repo_root)
+    if not locks_dir.is_dir():
+        return 0
+
+    cleared = 0
+    with _task_lock_guard(repo_root):
+        for lock_path in locks_dir.glob("*.json"):
+            lock = _read_json(lock_path) or {}
+            current = _string_value(lock.get("task_path"))
+            if not current:
+                continue
+            current_ref = _canonical_task_ref(current, repo_root) or normalize_task_ref(current)
+            if current_ref != target:
+                continue
+            if _remove_file(lock_path):
+                cleared += 1
+    return cleared
+
+
+def _refresh_task_lock_for_context(repo_root: Path, context_key: str, task_path: str) -> None:
+    target = _canonical_task_ref(task_path, repo_root) or normalize_task_ref(task_path)
+    if not target:
+        return
+    lock_path = _task_lock_path(target, repo_root)
+    if not lock_path.is_file():
+        return
+    with _task_lock_guard(repo_root):
+        lock = _read_json(lock_path)
+        if not lock or _string_value(lock.get("context_key")) != context_key:
+            return
+        now = time.time()
+        lock["last_seen_at"] = _utc_from_epoch(now)
+        lock["expires_at"] = _lock_expiry(now)
+        _write_json(lock_path, lock)
+
+
 def touch_session_last_seen(repo_root: Path, context_key: str | None) -> None:
     """Refresh last_seen_at on an existing session file so a live session stays
     inside the fallback freshness window (SESSION_FALLBACK_MAX_AGE_SECONDS).
@@ -563,6 +929,9 @@ def touch_session_last_seen(repo_root: Path, context_key: str | None) -> None:
         return
     context["last_seen_at"] = _utc_now()
     _write_json(path, context)
+    task_path = _string_value(context.get("current_task"))
+    if task_path:
+        _refresh_task_lock_for_context(repo_root, context_key, task_path)
 
 
 def _context_metadata(
@@ -630,6 +999,8 @@ def clear_active_task(
     context_path = _context_path(repo_root, context_key)
     if context_path.is_file():
         _remove_file(context_path)
+    if previous.task_path:
+        release_task_lock(previous.task_path, repo_root, platform_input, platform)
     return previous
 
 

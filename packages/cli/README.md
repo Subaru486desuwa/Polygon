@@ -56,7 +56,7 @@ Then just open your AI agent in the repo and describe what you want. The injecte
 
 | When | What the agent receives |
 |---|---|
-| Session start | A snapshot: developer, git status, current/active tasks, journal state, spec index paths, and a `Next-Action` hint |
+| Session start | A snapshot: developer, git status, current/active tasks, other live session task pointers, journal state, spec index paths, and a `Next-Action` hint |
 | Every message | A few-line `<workflow-state>` breadcrumb keyed on the active task's status (planning / in progress / none) |
 | Every git commit | When a task is active, the post-commit hook records `{hash} {subject}` into its `activity.jsonl` (Polygon's own bookkeeping commits are skipped) — silent, never blocks a commit |
 
@@ -87,7 +87,7 @@ python3 ./.polygon/scripts/task.py archive 06-15-rate-limiting
 # → status: completed, moved to .polygon/tasks/archive/2026-06/
 ```
 
-On platforms with slash commands, `/polygon:finish-work` wraps up the active task (archive + journal entry) and `/polygon:continue` resumes it. Other useful subcommands: `current` (show active task), `finish` (clear the pointer without archiving), `list`, `list-archive [YYYY-MM]`, and `add-subtask` / `remove-subtask` for task trees.
+On platforms with slash commands, `/polygon:finish-work` wraps up the active task (archive + journal entry) and `/polygon:continue` resumes it. Other useful subcommands: `current` (show this session's active task), `sessions` (list live session task pointers), `finish` (clear the pointer without archiving), `list`, `list-archive [YYYY-MM]`, and `add-subtask` / `remove-subtask` for task trees.
 
 ## What lives in `.polygon/`
 

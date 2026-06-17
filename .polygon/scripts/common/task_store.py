@@ -401,9 +401,10 @@ def cmd_archive(args: argparse.Namespace) -> int:
                                 write_json(child_json, child_data)
                                 modified_children.append(child_dir_path.name)
 
-    # Clear any session that still points at this task before the path moves.
-    from .active_task import clear_task_from_sessions
+    # Clear any session/lease that still points at this task before the path moves.
+    from .active_task import clear_task_from_locks, clear_task_from_sessions
     clear_task_from_sessions(str(task_dir), repo_root)
+    clear_task_from_locks(str(task_dir), repo_root)
 
     # Archive
     result = archive_task_complete(task_dir, repo_root)

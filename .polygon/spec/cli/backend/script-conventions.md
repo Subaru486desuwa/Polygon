@@ -305,16 +305,23 @@ for session/window scoped task state:
    platform-native session environment variable when the host exports one, or
    a Cursor shell ticket for a matching AI-run `task.py` command.
 2. Read `.trellis/.runtime/sessions/<session-key>.json`.
-3. If no context key or no session task is present, return no active task.
-4. If a session task exists but the task directory is stale, return stale
+3. If no context key or no session task is present, use the single-session
+   fallback only when exactly one fresh runtime session file exists.
+4. If no exact context match and zero or multiple runtime session files exist,
+   return no active task.
+5. If a session task exists but the task directory is stale, return stale
    session state.
 
 | Function | Purpose |
 |----------|---------|
 | `resolve_context_key(platform_input, platform)` | Accepts `session_id` / `sessionId` / `sessionID`, Cursor `conversation_id`, and transcript path fallbacks |
 | `resolve_active_task(repo_root, platform_input, platform)` | Returns an `ActiveTask` with `task_path`, `source_type`, `context_key`, and `stale` |
+| `iter_session_tasks(repo_root)` | Returns read-only `SessionTaskInfo` entries for observability; never participates in active-task selection |
 | `set_active_task(...)` | Writes session runtime state when a context key exists; returns `None` without a context key |
 | `clear_active_task(...)` | Deletes the current session file; returns no active task without a context key |
+| `iter_task_locks(repo_root)` | Returns read-only `TaskLockInfo` entries for execution lease observability |
+| `acquire_task_lock(...)` | Acquires the current session's task execution lease; raises `TaskLockConflict` when another unexpired session owns it |
+| `release_task_lock(...)` | Releases only the current session's lease for the target task |
 
 `TRELLIS_CONTEXT_ID` is a context-key override for subprocesses. It is not a
 second task pointer and must never store a task path. A plain AI-run shell
@@ -399,6 +406,29 @@ a `.current-task` fallback or a Python hook directory.
   `.trellis/.current-task`.
 - `task.py archive <task>` deletes every runtime session file whose
   `current_task` points at the archived task before moving the task directory.
+- `task.py sessions [--json]` lists runtime session pointers for visibility
+  only. It must not alter session files, choose the current task, or make
+  multi-session fallback decisions.
+- Task execution leases are stored under
+  `.trellis/.runtime/task-locks/<hash>.json` and serialized by
+  `.trellis/.runtime/.task-lock-guard.lock`. Leases are separate from session
+  pointers: `sessions` answers "which window points where", while `locks`
+  answers "which session owns execution for this task".
+- `task.py start <task>` must acquire the task lease before writing the session
+  pointer. A second unexpired lease from a different context key must fail
+  without writing that second session pointer. `--force-takeover` is the
+  explicit override.
+- `task.py finish` releases the current session's task lease. `task.py archive`
+  deletes every lease pointing at the archived task before moving the directory.
+- `task.py locks [--json]` lists task leases for visibility only. `task.py
+  unlock [<task>]` releases the current session's lease for the target task.
+- `get_context.py` default and record output include `LIVE SESSIONS`; JSON
+  output includes `liveSessions[]` with `contextKey`, platform, task path,
+  task metadata, `lastSeenAt`, session freshness, `staleTask`, and
+  `isCurrentSession`.
+- `get_context.py` default and record output also include `TASK LOCKS`; JSON
+  output includes `taskLocks[]` with `taskPath`, `contextKey`, platform,
+  timestamps, expiry, and `isCurrentSession`.
 
 ##### 4. Validation & Error Matrix
 
@@ -409,16 +439,27 @@ a `.current-task` fallback or a Python hook directory.
 | `start` with `TRELLIS_CONTEXT_ID` | Writes `.runtime/sessions/<key>.json`; does not require `.current-task` |
 | `current --source` with same context key | Prints `Source: session:<key>` |
 | `current --source` without context | Prints `(none)` and `Source: none` |
+| `current --source` without context and multiple session files | Prints `(none)` and `Source: none`; never picks an arbitrary live session |
+| `sessions --json` with multiple session files | Lists all files and marks only the context-key match as `isCurrentSession` |
 | stale session task + stale `.current-task` exists | Returns stale session state; no `.current-task` fallback |
 | `finish` with context key and active task | Deletes `.runtime/sessions/<key>.json` |
 | `finish` without context key | Returns no current task; does not delete `.current-task` |
 | `archive` for a task referenced by runtime sessions | Deletes those session files even when `finish` was skipped |
+| `start` for a task with another fresh session's lock | Fails non-zero; does not write the losing session pointer |
+| `start --force-takeover` for a locked task | Replaces the task lease with the current context key |
+| Multiple real `task.py start` processes race for the same task | Exactly one process writes a session pointer and lease; the rest fail with a lock conflict |
+| Multiple real `task.py start` processes target different tasks | Every process may acquire its own task lease; `sessions` and `locks` show each owner separately |
+| `finish` with an owned task lease | Deletes the current session file and releases the lease |
+| `archive` for a task referenced by task locks | Deletes those task lock files before moving the task |
 
 ##### 5. Good/Base/Bad Cases
 
 - Good: Cursor provides `conversation_id`; resolver writes
   `cursor_<conversation-id>.json` and hook/plugin output includes the
   session source.
+- Good: two AI windows have different runtime session files; `task.py sessions`
+  shows both, while `task.py current --source` without a context key still
+  returns no active task instead of guessing.
 - Base: A normal shell command has no session env; `task.py start` fails with
   a session identity hint and does not create `.current-task`.
 - Bad: `task.py create` pre-creates `.runtime`, or any resolver reads/writes
@@ -433,6 +474,13 @@ a `.current-task` fallback or a Python hook directory.
 - Hook/plugin tests proving the resolver source is surfaced.
 - Stale session tests proving no `.current-task` fallback occurs when the session task
   path is stale.
+- Regression tests for `task.py sessions` and `get_context.py` `LIVE SESSIONS`
+  proving live-session visibility does not change current-task isolation.
+- Regression tests for task locks proving second-session `start` fails without
+  `--force-takeover`, `finish` releases the lease, and `archive` clears task
+  leases.
+- Regression tests for real multi-process `task.py start` contention: same-task
+  races produce one winner, different-task races keep every session visible.
 
 ##### 7. Wrong vs Correct
 

@@ -85,7 +85,15 @@ from .paths import (
 
 from .active_task import (
     ActiveTask,
+    SessionTaskInfo,
+    TaskLockConflict,
+    TaskLockInfo,
+    acquire_task_lock,
     clear_active_task,
+    clear_task_from_locks,
+    iter_session_tasks,
+    iter_task_locks,
+    release_task_lock,
     resolve_active_task,
     resolve_context_key,
     set_active_task,

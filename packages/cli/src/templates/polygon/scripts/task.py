@@ -11,6 +11,8 @@ Usage:
     python3 task.py start <dir>                 # Set active task
     python3 task.py current [--source]          # Show active task
     python3 task.py finish                      # Clear active task
+    python3 task.py locks [--json]              # List task execution leases
+    python3 task.py unlock [<dir>]              # Release current session's task lease
     python3 task.py activity-append [<dir>] --action <a> [--note <n>]  # Log multi-LLM activity
     python3 task.py activity-log [<dir>]        # Print task activity timeline
     python3 task.py set-branch <dir> <branch>   # Set git branch
@@ -26,6 +28,7 @@ Usage:
 from __future__ import annotations
 
 import argparse
+import json
 import sys
 
 from common.log import Colors, colored
@@ -39,7 +42,11 @@ from common.paths import (
     get_current_task,
 )
 from common.active_task import (
+    TaskLockConflict,
+    acquire_task_lock,
     clear_active_task,
+    iter_task_locks,
+    release_task_lock,
     resolve_active_task,
     resolve_context_key,
     set_active_task,
@@ -64,6 +71,10 @@ from common.task_context import (
     cmd_add_context,
     cmd_validate,
     cmd_list_context,
+)
+from common.session_context import (
+    get_live_sessions_json,
+    get_live_sessions_text,
 )
 
 
@@ -123,10 +134,27 @@ def cmd_start(args: argparse.Namespace) -> int:
             run_task_hooks("after_start", task_json_path, repo_root)
         return 0
 
+    try:
+        lease = acquire_task_lock(
+            task_dir,
+            repo_root,
+            force_takeover=getattr(args, "force_takeover", False),
+        )
+    except TaskLockConflict as exc:
+        print(colored(f"Error: {exc}", Colors.RED))
+        print(colored(
+            "Hint: run `task.py locks` to inspect live task leases, "
+            "or pass --force-takeover if you intentionally want to take ownership.",
+            Colors.YELLOW,
+        ))
+        return 1
+
     active = set_active_task(task_dir, repo_root)
     if active:
         print(colored(f"✓ Current task set to: {task_dir}", Colors.GREEN))
         print(f"Source: {active.source}")
+        if lease:
+            print(f"Lease: lock:{lease.context_key}")
 
         if task_json_path.is_file():
             data = read_json(task_json_path)
@@ -142,6 +170,8 @@ def cmd_start(args: argparse.Namespace) -> int:
         run_task_hooks("after_start", task_json_path, repo_root)
         return 0
     else:
+        if lease:
+            release_task_lock(task_dir, repo_root)
         print(colored("Error: Failed to set current task", Colors.RED))
         return 1
 
@@ -161,9 +191,82 @@ def cmd_finish(args: argparse.Namespace) -> int:
 
     print(colored(f"✓ Cleared current task (was: {current})", Colors.GREEN))
     print(f"Source: {active.source}")
+    if release_task_lock(current, repo_root):
+        print(colored("✓ Released task lease", Colors.GREEN))
 
     if task_json_path.is_file():
         run_task_hooks("after_finish", task_json_path, repo_root)
+    return 0
+
+
+def _task_lock_to_dict(lock, current_context_key: str | None) -> dict:
+    return {
+        "taskPath": lock.task_path,
+        "contextKey": lock.context_key,
+        "platform": lock.platform,
+        "acquiredAt": lock.acquired_at,
+        "expiresAt": lock.expires_at,
+        "lastSeenAt": lock.last_seen_at,
+        "ageSeconds": lock.age_seconds,
+        "expiresInSeconds": lock.expires_in_seconds,
+        "expired": lock.expired,
+        "isCurrentSession": lock.context_key == current_context_key,
+    }
+
+
+def cmd_locks(args: argparse.Namespace) -> int:
+    """Show task execution leases."""
+    repo_root = get_repo_root()
+    current_context_key = resolve_context_key()
+    locks = iter_task_locks(repo_root, current_context_key)
+    if args.json:
+        print(json.dumps(
+            [_task_lock_to_dict(lock, current_context_key) for lock in locks],
+            indent=2,
+            ensure_ascii=False,
+        ))
+        return 0
+
+    print("## TASK LOCKS")
+    if not locks:
+        print("(no task leases)")
+        return 0
+
+    for lock in locks:
+        marker = " <- current session" if lock.context_key == current_context_key else ""
+        state = "expired" if lock.expired else "active"
+        expires = (
+            "expiry unknown"
+            if lock.expires_in_seconds is None
+            else (
+                f"expires in {lock.expires_in_seconds}s"
+                if lock.expires_in_seconds >= 0
+                else f"expired {abs(lock.expires_in_seconds)}s ago"
+            )
+        )
+        print(
+            f"- {lock.task_path}{marker} [{state}] owner={lock.context_key} "
+            f"platform={lock.platform}; acquired={lock.acquired_at}; "
+            f"expires={lock.expires_at} ({expires})"
+        )
+    print(f"Total: {len(locks)} task lease(s)")
+    return 0
+
+
+def cmd_unlock(args: argparse.Namespace) -> int:
+    """Release the current session's task lease."""
+    repo_root = get_repo_root()
+    task_ref = args.dir
+    if not task_ref:
+        active = resolve_active_task(repo_root)
+        task_ref = active.task_path
+    if not task_ref:
+        print(colored("No current task lease target found", Colors.YELLOW))
+        return 0
+    if release_task_lock(task_ref, repo_root):
+        print(colored(f"✓ Released task lease: {task_ref}", Colors.GREEN))
+    else:
+        print(colored(f"No owned task lease found: {task_ref}", Colors.YELLOW))
     return 0
 
 
@@ -420,6 +523,18 @@ def cmd_list_archive(args: argparse.Namespace) -> int:
     return 0
 
 
+def cmd_sessions(args: argparse.Namespace) -> int:
+    """Show runtime session pointers for all live windows."""
+    repo_root = get_repo_root()
+    if args.json:
+        sessions = get_live_sessions_json(repo_root)
+        print(json.dumps(sessions, indent=2, ensure_ascii=False))
+        return 0
+
+    print(get_live_sessions_text(repo_root))
+    return 0
+
+
 # =============================================================================
 # Help
 # =============================================================================
@@ -438,6 +553,8 @@ Usage:
   python3 task.py start <dir>                        Set active task
   python3 task.py current [--source]                 Show active task
   python3 task.py finish                             Clear active task
+  python3 task.py locks [--json]                     List task execution leases
+  python3 task.py unlock [<dir>]                     Release current session's task lease
   python3 task.py activity-append [<dir>] --action <a> [--note <n>]  Log multi-LLM activity
   python3 task.py activity-log [<dir>]               Print task activity timeline
   python3 task.py set-branch <dir> <branch>          Set git branch
@@ -446,6 +563,7 @@ Usage:
   python3 task.py archive <task-dir>                 Archive completed task
   python3 task.py add-subtask <parent> <child>       Link child task to parent
   python3 task.py remove-subtask <parent> <child>    Unlink child from parent
+  python3 task.py sessions [--json]                  List live runtime session pointers
   python3 task.py list [--mine] [--status <status>]  List tasks
   python3 task.py list-archive [YYYY-MM]             List archived tasks
 
@@ -465,9 +583,13 @@ Examples:
   python3 task.py start .polygon/tasks/01-21-add-login
   python3 task.py current --source
   python3 task.py finish
+  python3 task.py locks
+  python3 task.py unlock add-login
   python3 task.py archive add-login
   python3 task.py add-subtask parent-task child-task  # Link existing tasks
   python3 task.py remove-subtask parent-task child-task
+  python3 task.py sessions
+  python3 task.py sessions --json
   python3 task.py list                               # List all active tasks
   python3 task.py list --mine                        # List my tasks only
   python3 task.py list --mine --status in_progress   # List my in-progress tasks
@@ -544,6 +666,7 @@ def main() -> int:
     # start
     p_start = subparsers.add_parser("start", help="Set active task")
     p_start.add_argument("dir", help="Task directory")
+    p_start.add_argument("--force-takeover", action="store_true", help="Replace another session's unexpired task lease")
 
     # current
     p_current = subparsers.add_parser("current", help="Show active task")
@@ -552,6 +675,14 @@ def main() -> int:
 
     # finish
     subparsers.add_parser("finish", help="Clear active task")
+
+    # locks
+    p_locks = subparsers.add_parser("locks", help="List task execution leases")
+    p_locks.add_argument("--json", action="store_true", help="Output JSON")
+
+    # unlock
+    p_unlock = subparsers.add_parser("unlock", help="Release current session's task lease")
+    p_unlock.add_argument("dir", nargs="?", help="Task directory")
 
     # activity-append
     p_act_add = subparsers.add_parser(
@@ -619,6 +750,13 @@ def main() -> int:
     p_listarch = subparsers.add_parser("list-archive", help="List archived tasks")
     p_listarch.add_argument("month", nargs="?", help="Month (YYYY-MM)")
 
+    # sessions
+    p_sessions = subparsers.add_parser(
+        "sessions",
+        help="List live runtime session pointers",
+    )
+    p_sessions.add_argument("--json", action="store_true", help="Output JSON")
+
     args = parser.parse_args()
 
     if not args.command:
@@ -633,6 +771,8 @@ def main() -> int:
         "start": cmd_start,
         "current": cmd_current,
         "finish": cmd_finish,
+        "locks": cmd_locks,
+        "unlock": cmd_unlock,
         "activity-append": cmd_activity_append,
         "activity-log": cmd_activity_log,
         "activity-commit": cmd_activity_commit,
@@ -644,6 +784,7 @@ def main() -> int:
         "remove-subtask": cmd_remove_subtask,
         "list": cmd_list,
         "list-archive": cmd_list_archive,
+        "sessions": cmd_sessions,
     }
 
     if args.command in commands:
