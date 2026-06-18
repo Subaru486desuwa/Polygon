@@ -5,6 +5,7 @@ import { Command } from "commander";
 import { init } from "../commands/init.js";
 import { update } from "../commands/update.js";
 import { uninstall } from "../commands/uninstall.js";
+import { registerChannelCommand } from "../commands/channel/index.js";
 import { DIR_NAMES } from "../constants/paths.js";
 import { VERSION, PACKAGE_NAME } from "../constants/version.js";
 import { compareVersions } from "../utils/compare-versions.js";
@@ -57,6 +58,8 @@ program
     "AI-assisted development workflow framework for Cursor, Claude Code and more",
   )
   .version(VERSION, "-v, --version", "output the version number");
+
+registerChannelCommand(program);
 
 program
   .command("init")

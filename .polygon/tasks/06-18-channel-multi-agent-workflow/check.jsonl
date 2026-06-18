@@ -1,0 +1,9 @@
+{"file": ".polygon/spec/cli/backend/index.md", "reason": "Backend guideline routing for CLI/runtime review."}
+{"file": ".polygon/spec/cli/backend/directory-structure.md", "reason": "Check proposed files belong in the correct package layer."}
+{"file": ".polygon/spec/cli/backend/quality-guidelines.md", "reason": "Review strict TypeScript, dependency, and quality constraints."}
+{"file": ".polygon/spec/cli/backend/error-handling.md", "reason": "Review command error paths and exit semantics."}
+{"file": ".polygon/spec/cli/unit-test/index.md", "reason": "Review test strategy and command coverage."}
+{"file": ".polygon/spec/cli/unit-test/conventions.md", "reason": "Review Vitest structure and assertions."}
+{"file": ".polygon/spec/guides/cross-layer-thinking-guide.md", "reason": "Review data flow across channel storage, task links, CLI commands, and providers."}
+{"file": ".polygon/tasks/06-18-channel-multi-agent-workflow/prd.md", "reason": "Requirements and acceptance criteria for review."}
+{"file": ".polygon/tasks/06-18-channel-multi-agent-workflow/research/trellis-channel-runtime.md", "reason": "Source design comparison for review."}

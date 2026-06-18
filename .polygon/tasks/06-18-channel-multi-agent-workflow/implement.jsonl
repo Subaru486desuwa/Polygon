@@ -1,0 +1,9 @@
+{"file": ".polygon/spec/cli/backend/index.md", "reason": "Backend guideline routing for CLI/runtime work."}
+{"file": ".polygon/spec/cli/backend/directory-structure.md", "reason": "Module layout and template/dogfood architecture constraints."}
+{"file": ".polygon/spec/cli/backend/quality-guidelines.md", "reason": "TypeScript strictness and dependency constraints for future channel runtime code."}
+{"file": ".polygon/spec/cli/backend/error-handling.md", "reason": "CLI command error handling conventions."}
+{"file": ".polygon/spec/cli/unit-test/index.md", "reason": "Testing strategy entrypoint for channel command and runtime tests."}
+{"file": ".polygon/spec/cli/unit-test/conventions.md", "reason": "Vitest structure and required test coverage rules."}
+{"file": ".polygon/spec/guides/cross-layer-thinking-guide.md", "reason": "Channel runtime spans CLI, storage, provider adapters, hooks, and task context."}
+{"file": ".polygon/spec/guides/code-reuse-thinking-guide.md", "reason": "Avoid duplicating existing task/session/config helpers."}
+{"file": ".polygon/tasks/06-18-channel-multi-agent-workflow/research/trellis-channel-runtime.md", "reason": "Upstream Trellis design reference for channel runtime behavior."}

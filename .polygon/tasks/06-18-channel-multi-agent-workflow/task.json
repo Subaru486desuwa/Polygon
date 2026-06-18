@@ -1,0 +1,35 @@
+{
+  "id": "channel-multi-agent-workflow",
+  "name": "channel-multi-agent-workflow",
+  "title": "Design channel-based multi-agent workflow",
+  "description": "",
+  "status": "in_progress",
+  "dev_type": null,
+  "scope": null,
+  "package": null,
+  "priority": "P2",
+  "creator": "subaru486",
+  "assignee": "subaru486",
+  "createdAt": "2026-06-18",
+  "completedAt": null,
+  "branch": null,
+  "base_branch": "main",
+  "worktree_path": null,
+  "commit": null,
+  "pr_url": null,
+  "subtasks": [],
+  "children": [],
+  "parent": null,
+  "relatedFiles": [],
+  "notes": "",
+  "meta": {
+    "agents": [
+      {
+        "platform": "claude",
+        "model": null,
+        "first_seen": "2026-06-18T10:23:59Z",
+        "last_seen": "2026-06-18T10:23:59Z"
+      }
+    ]
+  }
+}
