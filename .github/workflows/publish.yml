@@ -35,6 +35,10 @@ jobs:
       - name: Build
         run: pnpm --filter @subaru486/polygon build
 
+      - name: Copy package metadata
+        run: cp ../../README.md ../../LICENSE .
+        working-directory: packages/cli
+
       - name: Determine npm tag
         id: npm-tag
         run: |
@@ -51,5 +55,5 @@ jobs:
           echo "Publishing version $VERSION with tag: $(cat $GITHUB_OUTPUT | grep tag | cut -d= -f2)"
 
       - name: Publish to npm
-        run: pnpm publish --access public --no-git-checks --tag ${{ steps.npm-tag.outputs.tag }}
+        run: pnpm publish --access public --no-git-checks --ignore-scripts --tag ${{ steps.npm-tag.outputs.tag }}
         working-directory: packages/cli
