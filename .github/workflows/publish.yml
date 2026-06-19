@@ -13,6 +13,7 @@ jobs:
     runs-on: ubuntu-latest
     permissions:
       contents: read
+      id-token: write
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -52,5 +53,3 @@ jobs:
       - name: Publish to npm
         run: pnpm publish --access public --no-git-checks --tag ${{ steps.npm-tag.outputs.tag }}
         working-directory: packages/cli
-        env:
-          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
