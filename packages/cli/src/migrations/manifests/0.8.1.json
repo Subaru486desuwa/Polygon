@@ -1,0 +1,9 @@
+{
+  "version": "0.8.1",
+  "description": "Multi-window task visibility, atomic task writes, and self-hosted Polygon marketplace defaults.",
+  "breaking": false,
+  "recommendMigrate": false,
+  "changelog": "**Polygon 0.8.1 — workflow reliability and project-owned marketplace defaults.**\n\n- feat(marketplace): default template fetching now uses the self-hosted Polygon marketplace instead of the upstream mindfold-ai marketplace, with fallback URL handling retained.\n- feat(workflow): task/session ownership is now session-scoped so multiple agent windows can work without stomping each other's active task pointer.\n- feat(scripts): JSON writes use an atomic replace path and corrupt reads surface more visible diagnostics instead of silently degrading.\n- fix(workflow): workflow phase parsing matches the renamed `## Customizing` heading.",
+  "migrations": [],
+  "notes": "Compatibility manifest for the already-published 0.8.1 package. The 0.8.1 tarball did not include this manifest, so 0.9.0 restores the update-chain metadata without adding file migrations."
+}

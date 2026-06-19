@@ -1,0 +1,9 @@
+{
+  "version": "0.9.0",
+  "description": "Local channel runtime for opt-in multi-agent collaboration.",
+  "breaking": false,
+  "recommendMigrate": false,
+  "changelog": "**Polygon 0.9.0 — first-class local channels for multi-agent work.**\n\n- feat(cli): add `polygon channel` commands for local durable collaboration sessions: `create`, `send`, `wait`, `list`, `spawn`, `kill`, `interrupt`, and one-shot `run`.\n- feat(cli): add repo-local channel event logs under `.polygon/.runtime/channels/` with append locking, monotonic sequence numbers, wait filters, and malformed-line tolerance.\n- feat(cli): add safe worker context assembly with realpath jail checks, JSONL manifest streaming, size caps, symlink escape protection, and sanitized prompt headers.\n- feat(cli): add supervisor runtime with project-level worker guards, per-worker locks, stale pid cleanup, shell/Claude/Codex provider boundaries, idle and total timeouts, interrupt projection, and task activity projection.\n- test(cli): cover channel events, context loading, command behavior, provider command construction, and supervisor lifecycle paths.",
+  "migrations": [],
+  "notes": "No generated-project file migration is required. The channel runtime is new CLI behavior and writes only repo-local runtime state when users opt into `polygon channel ...` commands."
+}
